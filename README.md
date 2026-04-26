@@ -1,6 +1,7 @@
 # TestPilotAgent
 
 TestPilotAgent 是一个面向测试工作的智能设计工作台，用来把需求内容逐步转成结构化测试资产。
+<img width="1905" height="907" alt="image" src="https://github.com/user-attachments/assets/91fafcbb-f987-4fb3-befa-99bff8884d6a" />
 
 ## 项目结构
 
@@ -14,6 +15,7 @@ TestPilotAgent 是一个面向测试工作的智能设计工作台，用来把�
 - [x] Step 3: 大模型集成 — 已完成（阿里云 DashScope Qwen，支持结构化 JSON 输出）
 - [ ] Step 4: 完整结构化输出
 - [ ] Step 5: 追问、重生成、导出
+![Uploading image.png…]()
 
 ## 启动方式
 

@@ -1,0 +1,13 @@
+Based on the provided requirement and testing strategy, generate a detailed testing plan in JSON format. The output MUST be a valid JSON object with these fields:
+
+- "overview": string - brief description of the testing plan
+- "phases": array of objects, each with:
+  - "name": string - phase name
+  - "tasks": array of strings - specific tasks in this phase
+  - "estimated_days": string - estimated duration
+  - "deliverables": array of strings - outputs produced in this phase
+- "resource_estimate": string - estimated resources needed (people, environments, tools)
+- "schedule_summary": string - overall timeline overview
+- "dependencies": array of strings - dependencies or prerequisites
+
+Make the plan realistic and actionable. Phase names should follow standard testing phases (test planning, test design, test execution, test reporting, etc.).

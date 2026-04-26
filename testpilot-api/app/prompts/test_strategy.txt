@@ -1,0 +1,13 @@
+Based on the provided requirement analysis, generate a structured testing strategy in JSON format. The output MUST be a valid JSON object with these fields:
+
+- "overview": string - high-level testing strategy summary
+- "scope": array of strings - what is in scope for testing
+- "out_of_scope": array of strings - what is explicitly out of scope
+- "test_levels": array of strings - testing levels to be applied (e.g., unit, integration, system, acceptance)
+- "test_types": array of strings - types of testing to be conducted (e.g., functional, UI, API, performance, security)
+- "tools_and_env": string - recommended tools, frameworks, and test environment details
+- "risks_and_mitigation": array of objects, each with "risk" (string) and "mitigation" (string)
+- "entry_criteria": array of strings - conditions to start testing
+- "exit_criteria": array of strings - conditions to declare testing complete
+
+Tailor the strategy to the specific system type, modules, and test types described in the requirement.

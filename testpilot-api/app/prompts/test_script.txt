@@ -1,0 +1,11 @@
+Based on the provided test cases and project configuration, generate test scripts in JSON format. The output MUST be a valid JSON object with these fields:
+
+- "language": string - programming language (e.g., "Python", "Java")
+- "framework": string - test framework (e.g., "pytest", "JUnit 5")
+- "files": array of objects, each with:
+  - "filename": string - file name with extension
+  - "language": string - language of the code
+  - "code": string - the actual test script code
+- "setup_instructions": string - instructions for setting up and running the tests
+
+Generate practical, runnable test scripts covering the key test cases. Include proper test structure, assertions, and comments for complex logic. Use the specified scripting language and framework.

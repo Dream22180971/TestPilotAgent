@@ -1,0 +1,12 @@
+Based on the provided test points, generate detailed test cases in JSON format. The output MUST be a valid JSON object with a "cases" array. Each case is an object with:
+
+- "id": string - unique identifier (e.g., "CASE-001")
+- "module": string - the feature module this test case belongs to
+- "scenario": string - test scenario category
+- "title": string - descriptive test case title
+- "preconditions": array of strings - required setup or preconditions
+- "steps": array of strings - step-by-step execution instructions
+- "expected_results": array of strings - expected outcomes after execution
+- "priority": string - one of "高", "中", "低"
+
+Generate at least one detailed test case for each test point. Preconditions and steps must be concrete and executable. Expected results should be verifiable.

@@ -28,7 +28,9 @@
 
 ## 截图
 
-<img width="1905" height="907" alt="工作台界面" src="https://github.com/user-attachments/assets/91fafcbb-f987-4fb3-befa-99bff8884d6a" />
+> TUI 工作台（Textual · GitHub Dark）：`tpa` 一键进入，三栏布局 = 需求文件/历史项目 ｜ 流水线/用例/详情 ｜ 追问输入框。
+
+*截图整理中（v0.2 TUI 版）*
 
 ---
 
@@ -72,37 +74,48 @@ TestPilotAgent 的思路：**让 AI 替你做重复性的分析工作**。你只
 
 ### 前置条件
 
-- Node.js 18+
 - Python 3.10+
-- 阿里云 DashScope API Key（可选，没有也能用规则引擎）
 
-### 启动
+### 安装与启动
 
 ```bash
-# 1. 启动后端
-cd testpilot-api
-pip install -r requirements.txt
-.\start-api.ps1    # Windows PowerShell
-
-# 2. 启动前端（另一个终端）
-cd testpilot-web
-npm install
-.\start-web.ps1    # Windows PowerShell
+git clone https://github.com/Dream22180971/TestPilotAgent.git
+cd TestPilotAgent
+python -m venv .venv
+.\.venv\Scripts\pip install -e ".[api]"    # Windows PowerShell
+.\.venv\Scripts\tpa.exe                    # 进入 TUI 终端工作台
 ```
 
-启动后访问：
-- 前端工作台：`http://127.0.0.1:3000/workspace`
-- 后端接口文档：`http://127.0.0.1:8000/docs`
+### CLI 无头模式（可进 CI）
+
+```bash
+tpa gen 需求文档.md            # 生成全套测试资产 → testpilot-output/（md + xlsx）
+tpa gen 需求文档.pdf --name 电商V2.3
+tpa history                    # 查看历史项目
+tpa ask "补充验证码过期场景" -p proj_xxx   # 追问调整（需 API Key）
+tpa config                     # 查看引擎/数据库配置
+```
 
 ### 配置 AI 模型（可选）
 
-在 `testpilot-api` 目录下创建 `.env` 文件：
+在项目根目录或 `~/.testpilot/` 下创建 `.env`：
 
 ```bash
-DASHSCOPE_API_KEY="sk-你的Key"
+DASHSCOPE_API_KEY="sk-你的Key"   # 阿里云 DashScope
+# LLM_BASE_URL / LLM_MODEL 可选覆盖
 ```
 
-不配置也能用——系统会自动回退到规则引擎生成。
+不配置也能用——自动回退规则引擎，生成基础骨架用例。
+
+### TUI 快捷键
+
+`g` 生成 ｜ `e` 导出 ｜ `/` 追问 ｜ `1/2/3` 切换页签（流水线/用例/详情）｜ `r` 刷新 ｜ `q` 退出
+
+### 可选：启动旧 FastAPI 层
+
+```bash
+.\start-api.ps1    # http://127.0.0.1:8000/docs
+```
 
 ---
 
@@ -122,23 +135,22 @@ DASHSCOPE_API_KEY="sk-你的Key"
 ## 技术架构
 
 ```
-┌──────────────────────────────────┐
-│     Frontend (Next.js)           │
-│  App Router · TypeScript         │
-│  Workspace + History + Chat      │
-├──────────────────────────────────┤
-│     Backend (FastAPI)            │
-│  SQLAlchemy · Document Parser    │
-│  Generation Routes · LLM Client  │
-├──────────────────────────────────┤
-│     AI Layer                    │
-│  DashScope Qwen (JSON 输出)     │
-│  规则引擎 (无 API Key 时兜底)    │
-├──────────────────────────────────┤
-│     Database                     │
-│  SQLite / PostgreSQL             │
-└──────────────────────────────────┘
+┌────────────────────────────────────────────┐
+│  testpilot/tui (Textual)   testpilot/cli   │
+│  终端工作台                  tpa 无头命令    │
+├────────────────────────────────────────────┤
+│  testpilot/core                            │
+│  pipeline 编排 · 规则引擎兜底               │
+│  LLM 客户端(Qwen) · Pydantic schema 校验    │
+│  文档解析(txt/md/pdf/docx) · 导出(md/xlsx)  │
+├────────────────────────────────────────────┤
+│  SQLite (~/.testpilot/)                    │
+├────────────────────────────────────────────┤
+│  testpilot-api (FastAPI, 可选薄桥接层)      │
+└────────────────────────────────────────────┘
 ```
+
+单一代码库三层出口：**TUI 日常使用 · CLI 进 CI · API 留给未来的 MCP 化（L4）**。
 
 ---
 
@@ -147,12 +159,12 @@ DASHSCOPE_API_KEY="sk-你的Key"
 > 2026-08-26 路线重定：四层递进，一层跑通再开下一层，每层都以**真实日常使用**为验收标准（dogfooding）。
 
 ### L1 · 单点跑通（当前阶段）
-- [x] PostgreSQL 替换内存存储
-- [x] 文档上传与解析（TXT/PDF/DOCX）
-- [x] 大模型集成（DashScope Qwen）
-- [ ] 完整结构化输出（Pydantic schema 校验）
-- [ ] 追问、局部重生成
-- [ ] 测试用例导出 Excel / XMind
+- [x] 文档解析入库（TXT/MD/PDF/DOCX）
+- [x] 大模型集成（DashScope Qwen，OpenAI 兼容）
+- [x] 完整结构化输出（Pydantic schema 校验）
+- [x] 追问重生成（`tpa ask` / TUI `/`）
+- [x] 导出 Markdown / Excel / JSON
+- [x] **v0.2 重构：TUI 终端工作台 + CLI 无头模式**（2026-08-26）
 - [ ] 多模型支持（Qwen-VL 处理含图文档）
 - [ ] 作者本人每周真实使用，形成反馈闭环
 

@@ -1,0 +1,14 @@
+Analyze the following requirement and produce a structured requirement analysis in JSON format. The output MUST be a valid JSON object with these fields:
+
+- "business_goal": string - the core business goal of this requirement
+- "system_type": string - type of system under test
+- "roles": array of strings - identified user roles
+- "modules": array of objects, each with "name" (string) and "description" (string) - feature modules identified
+- "core_flows": array of strings - main business process flows
+- "business_rules": array of strings - key business rules and logic constraints
+- "constraints": array of strings - technical, performance, or environmental constraints
+- "risks": array of strings - identified risks to testing or the feature itself
+- "unknowns": array of strings - questions that need clarification
+- "test_focus": array of strings - areas to focus testing efforts
+
+Be specific and practical. Extract concrete details from the requirement text rather than generic statements.

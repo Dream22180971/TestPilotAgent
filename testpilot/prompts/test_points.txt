@@ -1,0 +1,15 @@
+Based on the provided requirement analysis, generate structured test points in JSON format. The output MUST be a valid JSON object with a "rows" array. Each row is an object with:
+
+- "id": string - unique identifier (e.g., "login-normal-01")
+- "module": string - the feature module this point belongs to
+- "scenario": string - test scenario category
+- "point": string - specific test point description
+- "type": string - one of "正常", "异常", "边界"
+- "priority": string - one of "高", "中", "低"
+
+Generate 3-5 test points per module, covering:
+- Normal/positive flows (happy path)
+- Abnormal/negative flows (error handling)
+- Boundary/edge cases (boundary values, empty states, concurrent operations)
+
+Be specific about inputs, actions, and expected outcomes. Avoid generic descriptions.

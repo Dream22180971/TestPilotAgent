@@ -11,4 +11,8 @@ uploads/
 exports/
 *.db
 *.db-journal
+*.db.old-*
 logs/
+testpilot-output/
+testpilot-api/testpilot.db*
+*.svg

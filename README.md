@@ -1,6 +1,8 @@
 # TestPilotAgent
 
-> 把需求文档变成测试用例的 AI 工作台——上传需求，自动生成测试策略、测试点和测试脚本。
+> 测试人的 AI 工作台——上传需求，自动生成测试策略、测试点和测试脚本。
+
+> **2026-08-26 复活**：项目重启开发，定位从"能生成用例的 demo"升级为**测试人的 AI 副驾驶**。路线图见 [Roadmap](#roadmap)。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-black?style=flat&logo=next.js)](https://nextjs.org)
@@ -142,13 +144,26 @@ DASHSCOPE_API_KEY="sk-你的Key"
 
 ## Roadmap
 
+> 2026-08-26 路线重定：四层递进，一层跑通再开下一层，每层都以**真实日常使用**为验收标准（dogfooding）。
+
+### L1 · 单点跑通（当前阶段）
 - [x] PostgreSQL 替换内存存储
 - [x] 文档上传与解析（TXT/PDF/DOCX）
 - [x] 大模型集成（DashScope Qwen）
 - [ ] 完整结构化输出（Pydantic schema 校验）
-- [ ] 追问、局部重生成、导出
+- [ ] 追问、局部重生成
+- [ ] 测试用例导出 Excel / XMind
 - [ ] 多模型支持（Qwen-VL 处理含图文档）
-- [ ] 测试用例导出为 Excel
+- [ ] 作者本人每周真实使用，形成反馈闭环
+
+### L2 · 知识沉淀
+- [ ] RAG 历史用例库：生成的用例带上项目记忆，不再每次从零开始
+
+### L3 · 多 Agent 协作
+- [ ] LangGraph 编排：评审 Agent / 执行 Agent / 归档 Agent 分工协作
+
+### L4 · 生态接入
+- [ ] MCP 化：成为个人 Agent 网络的测试垂直节点，任何 Agent 都能调用"生成测试用例"能力
 
 ---
 

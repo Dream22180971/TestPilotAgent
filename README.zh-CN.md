@@ -77,7 +77,7 @@ npm run dev
 
 ---
 
-## 核心工作流
+## 🔄 核心工作流
 
 ```mermaid
 flowchart LR
@@ -111,7 +111,7 @@ flowchart LR
 
 ---
 
-## 使用示例
+## 🧪 使用示例
 
 假设需求是：
 
@@ -169,7 +169,7 @@ flowchart LR
 
 ---
 
-## 环境变量
+## ⚙️ 环境变量
 
 后端 `.env` 示例：
 
@@ -245,7 +245,7 @@ DATABASE_URL="sqlite:///./testpilot.db"
 
 ---
 
-## License
+## 📄 License
 
 [MIT](./LICENSE)
 

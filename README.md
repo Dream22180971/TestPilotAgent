@@ -1,242 +1,273 @@
-Turn requirement documents into structured test strategies, test points, cases and scripts with AI. / 把需求文档转成结构化测试策略、测试点、测试用例和脚本。
+<div align="center">
 
-<!-- README-V2-BILINGUAL -->
+<img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=700&size=30&duration=2200&pause=900&color=22C55E&center=true&vCenter=true&width=900&lines=TURN+REQUIREMENTS+INTO+TEST+ASSETS;AI+FOR+QUALITY+ENGINEERING" alt="Typing SVG" />
 
 # TestPilotAgent
 
-> **EN:** Turn requirement documents into structured test strategies, test points, cases and scripts with AI.  
-> **中文：** 把需求文档转成结构化测试策略、测试点、测试用例和脚本。
+**Turn requirement documents into structured test strategies, test points, cases and scripts with AI.**  
+**把需求文档转成结构化测试策略、测试点、测试用例和测试脚本。**
 
-## Demo / 演示
+[![Next.js](https://img.shields.io/badge/Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![AI Quality](https://img.shields.io/badge/AI+QUALITY-111827?style=for-the-badge&logo=checkmarx&logoColor=22c55e)](#-roadmap--路线图)
+[![License](https://img.shields.io/badge/LICENSE-MIT-10B981?style=for-the-badge)](./LICENSE)
 
-Existing workbench screenshot is kept below; the next documentation update should replace it with a full workflow GIF. / 现有工作台截图保留在下方，下一步建议补完整工作流 GIF。
+</div>
 
-## Quick Start / 5 分钟快速开始
+---
+
+## 🎯 What it is / 它是什么
+
+**EN**  
+TestPilotAgent is an AI-assisted testing workbench. Upload or paste a requirement, then turn it into reusable testing assets instead of starting every review from a blank page.
+
+**中文**  
+TestPilotAgent 是一个面向测试工程师的 AI 工作台。上传需求文档或直接粘贴需求后，它会把内容拆解成可复用的测试资产，而不是每次都从空白文档开始写。
+
+> **From requirement → test strategy → test points → test cases → test scripts.**  
+> **从需求 → 测试策略 → 测试点 → 测试用例 → 测试脚本。**
+
+---
+
+## 🎬 Demo / 演示
+
+<div align="center">
+
+<img width="92%" alt="TestPilotAgent workbench" src="https://github.com/user-attachments/assets/91fafcbb-f987-4fb3-befa-99bff8884d6a" />
+
+</div>
+
+> Next recommended asset: a short workflow GIF showing upload → generation → follow-up refinement.  
+> 下一步建议补一段 10–20 秒 GIF：展示上传需求 → 生成 → 追问修改的完整闭环。
+
+---
+
+## ⚡ Quick Start / 5 分钟快速开始
+
+### Backend / 后端
 
 ```bash
 git clone https://github.com/Dream22180971/TestPilotAgent.git
-cd TestPilotAgent
+cd TestPilotAgent/testpilot-api
+
 pip install -r requirements.txt
-# then install and run the frontend according to the repo structure
+./start-api.ps1
 ```
 
-> **EN:** Clone, install, run. Advanced configuration and project-specific details are documented below.  
-> **中文：** 克隆、安装、运行即可开始。高级配置和项目特定说明继续保留在下方。
+### Frontend / 前端
 
-## Why this project / 为什么做这个项目
-
-**EN:** This project starts from one concrete problem and prioritizes being understandable, runnable and useful before becoming complex.
-
-**中文：** 这个项目从一个明确问题出发，优先做到易理解、能运行、真正有用，再逐步增加复杂能力。
-
----
-
-# TestPilotAgent
-
-> 测试人的 AI 工作台——上传需求，自动生成测试策略、测试点和测试脚本。
-
-> **2026-08-26 复活**：项目重启开发，定位从"能生成用例的 demo"升级为**测试人的 AI 副驾驶**。路线图见 [Roadmap](#roadmap)。
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
-[![Next.js](https://img.shields.io/badge/Next.js-black?style=flat&logo=next.js)](https://nextjs.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi)](https://fastapi.tiangolo.com)
-
----
-
-## 目录
-
-- [截图](#截图)
-- [它是什么](#它是什么)
-- [为什么做](#为什么做)
-- [核心功能](#核心功能)
-- [快速开始](#快速开始)
-- [使用示例](#使用示例)
-- [技术架构](#技术架构)
-- [Roadmap](#roadmap)
-- [FAQ](#faq)
-- [谁适合看这个](#谁适合看这个)
-- [关于我](#关于我)
-
----
-
-## 截图
-
-<img width="1905" height="907" alt="工作台界面" src="https://github.com/user-attachments/assets/91fafcbb-f987-4fb3-befa-99bff8884d6a" />
-
----
-
-## 它是什么
-
-TestPilotAgent 是一个**测试设计工作台**，帮你把需求文档变成结构化的测试资产。
-
-**你可以用它来：**
-- 上传需求文档（TXT / PDF / DOCX），AI 自动分析
-- 生成测试策略、测试点、测试用例、测试脚本
-- 用自然语言追问和调整生成结果
-- 在线查看和管理所有历史生成记录
-
-不用再手动写测试用例了——告诉它"帮我测登录功能"，它自己去分析、生成、输出。
-
----
-
-## 为什么做
-
-测试工程师写测试用例是最耗时的环节之一。一份需求文档拿到手，要花几个小时拆解测试点、写用例、设计测试脚本。
-
-TestPilotAgent 的思路：**让 AI 替你做重复性的分析工作**。你只需要上传需求文档，AI 帮你拆解成测试策略、测试点、测试用例，你只需要审查和微调。
-
-当前版本是产品原型验证阶段，主流程已跑通，适合学习和演示。
-
----
-
-## 核心功能
-
-| 你能做什么 | 说明 |
-|-----------|------|
-| **上传需求文档** | 支持 TXT / PDF / DOCX，上传后自动提取文本并分析 |
-| **AI 生成测试资产** | 基于 DashScope Qwen 模型，输出测试策略、测试点、用例、脚本 |
-| **追问和调整** | 对生成结果不满意？用自然语言追问，AI 会重新生成 |
-| **历史记录** | 所有生成记录在线保存，随时查看和对比 |
-| **规则引擎兜底** | 没有配置 API Key 时，自动回退到规则引擎生成基础结果 |
-
----
-
-## 快速开始
-
-### 前置条件
-
-- Node.js 18+
-- Python 3.10+
-- 阿里云 DashScope API Key（可选，没有也能用规则引擎）
-
-### 启动
+Open another terminal:
 
 ```bash
-# 1. 启动后端
-cd testpilot-api
-pip install -r requirements.txt
-.\start-api.ps1    # Windows PowerShell
+cd TestPilotAgent/testpilot-web
 
-# 2. 启动前端（另一个终端）
-cd testpilot-web
 npm install
-.\start-web.ps1    # Windows PowerShell
+./start-web.ps1
 ```
 
-启动后访问：
-- 前端工作台：`http://127.0.0.1:3000/workspace`
-- 后端接口文档：`http://127.0.0.1:8000/docs`
+Then open:
 
-### 配置 AI 模型（可选）
+- Workbench / 工作台: `http://127.0.0.1:3000/workspace`
+- API docs / 接口文档: `http://127.0.0.1:8000/docs`
 
-在 `testpilot-api` 目录下创建 `.env` 文件：
+### Optional model config / 可选模型配置
+
+Create `testpilot-api/.env`:
 
 ```bash
-DASHSCOPE_API_KEY="sk-你的Key"
+DASHSCOPE_API_KEY="your-key"
 ```
 
-不配置也能用——系统会自动回退到规则引擎生成。
+No key? The project can fall back to its rule-based generation path.
+
+没有 API Key 时，可以回退到规则引擎生成基础结果。
 
 ---
 
-## 使用示例
+## ✨ Core workflow / 核心工作流
 
-### 场景：测试登录功能
+```mermaid
+flowchart LR
+    A[Requirement / 需求] --> B[Document Parser]
+    B --> C[AI Analysis]
+    C --> D[Test Strategy]
+    C --> E[Test Points]
+    C --> F[Test Cases]
+    C --> G[Test Scripts]
+    D --> H[Review & Follow-up / 评审与追问]
+    E --> H
+    F --> H
+    G --> H
+```
 
-1. 打开工作台，输入项目名称
-2. 上传一份包含登录需求的文档（或直接在文本框输入需求描述）
-3. 点击「生成」
-4. AI 自动输出：测试策略 → 测试点 → 测试用例 → 测试脚本
-5. 对结果不满意？在对话框追问："补充一下密码错误 5 次锁定的场景"
-6. AI 会重新生成包含该场景的用例
+The key idea is not “AI writes everything automatically”. The key idea is **AI drafts structured test assets, humans review and refine**.
+
+核心不是“让 AI 自动替代测试人员”，而是让 AI 先完成结构化初稿，人负责评审、补充和最终判断。
 
 ---
 
-## 技术架构
+## 🧪 What it can generate / 当前可生成内容
 
+| Output | EN | 中文 |
+|---|---|---|
+| Test strategy | scope, risks, approach | 测试范围、风险、方法 |
+| Test points | functional and edge scenarios | 功能点与边界场景 |
+| Test cases | structured reusable cases | 结构化可复用用例 |
+| Test scripts | automation-oriented drafts | 自动化脚本草稿 |
+| Follow-up refinement | regenerate or supplement | 追问补充或重新生成 |
+| History | keep generated assets | 保存历史生成记录 |
+
+Supported input documents currently include TXT, PDF and DOCX.
+
+当前支持 TXT、PDF、DOCX 需求文档解析。
+
+---
+
+## 🧩 Example / 使用示例
+
+Suppose the requirement says:
+
+```text
+The user can log in with username and password.
+After five consecutive password failures, the account must be locked.
 ```
+
+TestPilotAgent can help expand this into:
+
+- normal login / 正常登录
+- wrong password / 密码错误
+- fifth failure / 第 5 次失败
+- lock state / 锁定状态
+- unlock path / 解锁路径
+- boundary and retry behavior / 边界与重试行为
+
+Then you can continue with a natural-language follow-up such as:
+
+```text
+补充密码为空、用户名不存在、锁定后再次登录的场景。
+```
+
+---
+
+## 🏗 Architecture / 技术架构
+
+```text
 ┌──────────────────────────────────┐
-│     Frontend (Next.js)           │
-│  App Router · TypeScript         │
-│  Workspace + History + Chat      │
+│ Frontend · Next.js              │
+│ Workspace · History · Chat      │
 ├──────────────────────────────────┤
-│     Backend (FastAPI)            │
-│  SQLAlchemy · Document Parser    │
-│  Generation Routes · LLM Client  │
+│ Backend · FastAPI               │
+│ Parser · Routes · Validation    │
 ├──────────────────────────────────┤
-│     AI Layer                    │
-│  DashScope Qwen (JSON 输出)     │
-│  规则引擎 (无 API Key 时兜底)    │
+│ AI Layer                         │
+│ Qwen / structured generation    │
+│ Rule fallback                   │
 ├──────────────────────────────────┤
-│     Database                     │
-│  SQLite / PostgreSQL             │
+│ Storage                          │
+│ SQLite / PostgreSQL             │
 └──────────────────────────────────┘
 ```
 
----
+### Design principles / 设计原则
 
-## Roadmap
-
-> 2026-08-26 路线重定：四层递进，一层跑通再开下一层，每层都以**真实日常使用**为验收标准（dogfooding）。
-
-### L1 · 单点跑通（当前阶段）
-- [x] PostgreSQL 替换内存存储
-- [x] 文档上传与解析（TXT/PDF/DOCX）
-- [x] 大模型集成（DashScope Qwen）
-- [ ] 完整结构化输出（Pydantic schema 校验）
-- [ ] 追问、局部重生成
-- [ ] 测试用例导出 Excel / XMind
-- [ ] 多模型支持（Qwen-VL 处理含图文档）
-- [ ] 作者本人每周真实使用，形成反馈闭环
-
-### L2 · 知识沉淀
-- [ ] RAG 历史用例库：生成的用例带上项目记忆，不再每次从零开始
-
-### L3 · 多 Agent 协作
-- [ ] LangGraph 编排：评审 Agent / 执行 Agent / 归档 Agent 分工协作
-
-### L4 · 生态接入
-- [ ] MCP 化：成为个人 Agent 网络的测试垂直节点，任何 Agent 都能调用"生成测试用例"能力
+- Structured output before pretty prose / 优先结构化输出
+- Human review before acceptance / 结果必须经过人工评审
+- Reusable assets instead of one-off chat / 产出可复用资产，而不是一次性对话
+- Gradual evolution toward AI quality engineering / 逐步演进到 AI 质量工程
 
 ---
 
-## FAQ
+## 🧠 Where this is going / 未来方向
 
-**Q: 没有 API Key 能用吗？**
-A: 能用。系统会自动回退到规则引擎，生成基础的测试分析结果。但智能程度不如大模型。
+TestPilotAgent is evolving from a “test-case generator” into a broader AI quality workbench.
 
-**Q: 支持哪些文档格式？**
-A: 目前支持 TXT、PDF、DOCX 三种格式。上传后自动提取文本内容。
+它会从“测试用例生成器”逐步演进为更完整的 AI Quality Workbench。
 
-**Q: 前端连不上后端怎么办？**
-A: 检查三件事：后端是否启动（8000 端口）、前端是否启动（3000 端口）、前端环境变量中的后端地址是否为 `http://127.0.0.1:8000`。
+Potential future modules:
 
-**Q: 这个能用于生产环境吗？**
-A: 当前版本是产品原型验证阶段，适合学习和演示。生产使用需要完善错误处理、权限控制和数据校验。
-
----
-
-## 谁适合看这个
-
-- **测试工程师**：了解 AI 如何辅助测试设计，学习自动化测试新思路
-- **想学 AI 应用开发的人**：FastAPI + Next.js + LLM 集成的完整案例
-- **正在做毕设的学生**：AI + 测试方向的参考项目
-- **产品经理**：了解 AI 工作台类产品的产品设计思路
+- RAG evaluation / RAG 评测
+- prompt regression / Prompt 回归
+- agent trajectory testing / Agent 轨迹测试
+- MCP contract testing / MCP 契约测试
+- hallucination checks / 幻觉检查
+- latency and cost comparison / 延迟与成本对比
+- golden datasets / Golden Dataset
+- CI quality gates / CI 质量门禁
 
 ---
 
-## 关于我
+## 🗺 Roadmap / 路线图
 
-我是**肖恩沃尔特**（Sean Walter），一个从测试工程师正在转型为 AI 独立开发者的程序员。
+### L1 · Core workflow / 核心闭环
 
-TestPilotAgent 是我把"AI + 测试"想法落地的第一个项目。从测试工程师的视角出发，我知道写测试用例有多耗时——所以想让 AI 帮我做这件事。
+- [x] Document upload and parsing
+- [x] LLM integration
+- [x] Database persistence
+- [ ] Pydantic structured output validation
+- [ ] Follow-up and partial regeneration
+- [ ] Excel / XMind export
+- [ ] Multi-model support
+- [ ] Weekly dogfooding
 
-- GitHub: [Dream22180971](https://github.com/Dream22180971)
-- Twitter/X: [@sean_walter0717](https://x.com/sean_walter0717)
-- 博客: [seanwalter.top](https://seanwalter.top)
+### L2 · Knowledge / 知识沉淀
+
+- [ ] Historical case RAG
+- [ ] Project-specific memory
+- [ ] Reusable test asset library
+
+### L3 · Agentic QA / 多 Agent 协作
+
+- [ ] Review agent
+- [ ] Execution agent
+- [ ] Archive agent
+- [ ] Orchestration
+
+### L4 · AI Quality Platform / AI 质量平台
+
+- [ ] RAG evaluation
+- [ ] Agent regression
+- [ ] MCP quality gate
+- [ ] Prompt regression
+- [ ] Cost / latency observability
 
 ---
 
-## License
+## 🔐 Current limitations / 当前限制
+
+- This is not yet a production-grade enterprise test management system.
+- Generated content still requires human review.
+- Complex PDFs and image-heavy documents may need better multimodal parsing.
+- Model quality depends on provider and prompt configuration.
+
+- 当前还不是生产级企业测试管理平台。
+- 所有 AI 结果仍需要人工评审。
+- 复杂 PDF、图文混排文档仍需增强多模态解析。
+- 结果质量会受到模型与提示词配置影响。
+
+---
+
+## 🤝 Contributing / 参与贡献
+
+Useful contributions include:
+
+- parsers
+- structured schemas
+- evaluation datasets
+- export formats
+- model adapters
+- QA workflow ideas
+
+尤其欢迎文档解析、结构化 Schema、评测数据集、导出格式、模型适配和真实测试工作流相关 PR。
+
+---
+
+## 📄 License
 
 [MIT](./LICENSE)
+
+<div align="center">
+
+**AI should reduce repetitive test design work, not remove human judgment.**  
+**AI 应该减少重复测试设计工作，而不是替代测试人员的判断。**
+
+</div>

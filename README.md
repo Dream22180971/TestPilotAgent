@@ -111,7 +111,7 @@ flowchart LR
 
 ---
 
-## Example
+## 🧪 Example
 
 Given a requirement:
 
@@ -169,7 +169,7 @@ Design principles:
 
 ---
 
-## Environment
+## ⚙️ Environment
 
 Backend `.env` example:
 

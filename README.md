@@ -31,41 +31,6 @@ pip install -r requirements.txt
 
 ---
 
-Turn requirement documents into structured test strategies, test points, cases and scripts with AI. / 把需求文档转成结构化测试策略、测试点、测试用例和脚本。
-
-<!-- README-V2-BILINGUAL -->
-
-# TestPilotAgent
-
-> **EN:** Turn requirement documents into structured test strategies, test points, cases and scripts with AI.  
-> **中文：** 把需求文档转成结构化测试策略、测试点、测试用例和脚本。
-
-## Demo / 演示
-
-Existing workbench screenshot is kept below; the next documentation update should replace it with a full workflow GIF. / 现有工作台截图保留在下方，下一步建议补完整工作流 GIF。
-
-## Quick Start / 5 分钟快速开始
-
-```bash
-git clone https://github.com/Dream22180971/TestPilotAgent.git
-cd TestPilotAgent
-pip install -r requirements.txt
-# install frontend dependencies in the frontend directory defined by this repo
-npm install
-```
-
-> **EN:** The commands above are intentionally kept short: clone, install, run. Project-specific configuration and advanced usage stay in the detailed documentation below.  
-> **中文：** 上面的命令刻意保持最短路径：克隆、安装、运行。项目特定配置与高级用法继续保留在下方详细文档中。
-
-## Why this project / 为什么做这个项目
-
-**EN:** This repository is built around one concrete problem and aims to be understandable, runnable and useful before becoming complex.
-
-**中文：** 这个仓库围绕一个明确问题构建，优先做到易理解、能运行、真正有用，再逐步增加复杂能力。
-
----
-
-<!-- ORIGINAL-DOCS -->
 # TestPilotAgent
 
 > 测试人的 AI 工作台——上传需求，自动生成测试策略、测试点和测试脚本。

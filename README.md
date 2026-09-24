@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="https://readme-typing-svg.herokuapp.com?font=JetBrains+Mono&weight=700&size=30&duration=2200&pause=900&color=22C55E&center=true&vCenter=true&width=900&lines=TURN+REQUIREMENTS+INTO+TEST+ASSETS;AI+FOR+QUALITY+ENGINEERING" alt="Typing SVG" />
-
 # TestPilotAgent
 
 **Turn requirement documents into structured test strategies, test points, cases and scripts with AI.**

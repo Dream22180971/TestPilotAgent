@@ -15,7 +15,7 @@
 
 ---
 
-## What it is
+## 🎯 What it is
 
 TestPilotAgent is an AI-assisted testing workbench. Upload or paste a requirement and turn it into reusable testing assets instead of starting every review from a blank page.
 
@@ -25,7 +25,7 @@ The goal is not to remove human judgment. It is to reduce repetitive test-design
 
 ---
 
-## Demo
+## 🎬 Demo
 
 <div align="center">
 
@@ -37,7 +37,7 @@ The goal is not to remove human judgment. It is to reduce repetitive test-design
 
 ---
 
-## Quick Start
+## ⚡ Quick Start
 
 ### 1. Backend
 
@@ -77,7 +77,7 @@ Open:
 
 ---
 
-## Core Workflow
+## 🔄 Core Workflow
 
 ```mermaid
 flowchart LR
@@ -96,7 +96,7 @@ flowchart LR
 
 ---
 
-## Current Capabilities
+## ✅ Current Capabilities
 
 | Capability | Status | Notes |
 |---|---:|---|
@@ -140,7 +140,7 @@ Add empty-password, nonexistent-user and login-after-lock scenarios.
 
 ---
 
-## Architecture
+## 🧩 Architecture
 
 ```text
 ┌──────────────────────────────────┐
@@ -182,7 +182,7 @@ Optional model and endpoint overrides are documented in `testpilot-api/.env.exam
 
 ---
 
-## Current Limitations
+## ⚠️ Current Limitations
 
 - Generated content still requires human review.
 - Complex image-heavy documents need stronger multimodal parsing.
@@ -193,7 +193,7 @@ Making limitations explicit is intentional: this repository is a working enginee
 
 ---
 
-## Roadmap
+## 🗺 Roadmap
 
 ### L1 · Reliable Core Workflow
 
@@ -232,7 +232,7 @@ Making limitations explicit is intentional: this repository is a working enginee
 
 ---
 
-## Contributing
+## 🤝 Contributing
 
 Useful contributions include:
 
@@ -245,7 +245,7 @@ Useful contributions include:
 
 ---
 
-## License
+## 📄 License
 
 [MIT](./LICENSE)
 

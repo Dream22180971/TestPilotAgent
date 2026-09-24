@@ -17,6 +17,39 @@ Existing workbench screenshot is kept below; the next documentation update shoul
 git clone https://github.com/Dream22180971/TestPilotAgent.git
 cd TestPilotAgent
 pip install -r requirements.txt
+# then install and run the frontend according to the repo structure
+```
+
+> **EN:** Clone, install, run. Advanced configuration and project-specific details are documented below.  
+> **中文：** 克隆、安装、运行即可开始。高级配置和项目特定说明继续保留在下方。
+
+## Why this project / 为什么做这个项目
+
+**EN:** This project starts from one concrete problem and prioritizes being understandable, runnable and useful before becoming complex.
+
+**中文：** 这个项目从一个明确问题出发，优先做到易理解、能运行、真正有用，再逐步增加复杂能力。
+
+---
+
+Turn requirement documents into structured test strategies, test points, cases and scripts with AI. / 把需求文档转成结构化测试策略、测试点、测试用例和脚本。
+
+<!-- README-V2-BILINGUAL -->
+
+# TestPilotAgent
+
+> **EN:** Turn requirement documents into structured test strategies, test points, cases and scripts with AI.  
+> **中文：** 把需求文档转成结构化测试策略、测试点、测试用例和脚本。
+
+## Demo / 演示
+
+Existing workbench screenshot is kept below; the next documentation update should replace it with a full workflow GIF. / 现有工作台截图保留在下方，下一步建议补完整工作流 GIF。
+
+## Quick Start / 5 分钟快速开始
+
+```bash
+git clone https://github.com/Dream22180971/TestPilotAgent.git
+cd TestPilotAgent
+pip install -r requirements.txt
 # install frontend dependencies in the frontend directory defined by this repo
 npm install
 ```

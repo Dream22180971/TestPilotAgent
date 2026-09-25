@@ -65,17 +65,10 @@ class TestPlanOutput(BaseModel):
     dependencies: list[str] = Field(default_factory=list)
 
 
-class ScriptFile(BaseModel):
-    filename: str
-    language: str
-    code: str
+class TestDesignOutput(BaseModel):
+    """Test-design mind map as an indented Markdown outline."""
 
-
-class TestScriptsOutput(BaseModel):
-    language: str = "Python"
-    framework: str = ""
-    files: list[ScriptFile] = Field(default_factory=list)
-    setup_instructions: str = ""
+    markdown: str = ""
 
 
 # Map of target -> Pydantic model class for validation
@@ -84,5 +77,5 @@ SCHEMA_MAP = {
     "test_plan": TestPlanOutput,
     "test_points": TestPointsOutput,
     "test_cases": TestCasesOutput,
-    "test_script": TestScriptsOutput,
+    "test_design": TestDesignOutput,
 }

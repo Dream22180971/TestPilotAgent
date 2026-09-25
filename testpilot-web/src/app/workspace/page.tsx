@@ -26,6 +26,7 @@ import {
   RocketOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 import AppShell from "@/components/AppShell";
@@ -34,7 +35,6 @@ import FollowupBox from "@/components/workspace/FollowupBox";
 import {
   AnalysisView,
   PlanView,
-  ScriptsView,
   StrategyView,
   UnknownsView,
 } from "@/components/workspace/ModuleViews";
@@ -48,9 +48,14 @@ import {
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
 
+// mind-elixir 依赖浏览器 DOM，仅在客户端加载画布
+const MindmapView = dynamic(() => import("@/components/workspace/MindmapView"), {
+  ssr: false,
+  loading: () => <Paragraph type="secondary" style={{ padding: 24 }}>加载画布…</Paragraph>,
+});
+
 const SYSTEM_TYPES = ["Web", "App", "API", "小程序", "后台系统"];
 const TEST_TYPE_OPTIONS = ["功能测试", "接口测试", "UI测试", "性能测试", "安全测试"];
-const SCRIPT_LANGUAGES = ["Python", "Java"];
 
 const STEP_ORDER = ["analysis", ...PIPELINE_TARGETS];
 
@@ -173,17 +178,17 @@ export default function WorkspacePage() {
       ),
     },
     {
-      key: "test_script",
-      label: TARGET_LABELS.test_script,
+      key: "test_design",
+      label: TARGET_LABELS.test_design,
       children: (
         <div>
-          {tabToolbar("test_script")}
-          <ScriptsView scripts={ws.testScripts} />
+          {tabToolbar("test_design")}
+          <MindmapView markdown={ws.testDesign} />
           <FollowupBox
-            targetLabel={TARGET_LABELS.test_script}
-            loading={ws.isBusy("follow:test_script")}
-            disabled={!ws.testScripts}
-            onSubmit={(text) => ws.runFollowup("test_script", text)}
+            targetLabel={TARGET_LABELS.test_design}
+            loading={ws.isBusy("follow:test_design")}
+            disabled={!ws.testDesign}
+            onSubmit={(text) => ws.runFollowup("test_design", text)}
           />
         </div>
       ),
@@ -245,26 +250,15 @@ export default function WorkspacePage() {
                     onChange={(e) => ws.setProjectName(e.target.value)}
                     placeholder="项目名称，例如：电商下单测试"
                   />
-                  <Row gutter={8}>
-                    <Col span={12}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>系统类型</Text>
-                      <Select
-                        value={ws.systemType}
-                        onChange={ws.setSystemType}
-                        options={SYSTEM_TYPES.map((v) => ({ value: v, label: v }))}
-                        style={{ width: "100%", marginTop: 2 }}
-                      />
-                    </Col>
-                    <Col span={12}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>脚本语言</Text>
-                      <Select
-                        value={ws.scriptLanguage}
-                        onChange={ws.setScriptLanguage}
-                        options={SCRIPT_LANGUAGES.map((v) => ({ value: v, label: v }))}
-                        style={{ width: "100%", marginTop: 2 }}
-                      />
-                    </Col>
-                  </Row>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>系统类型</Text>
+                    <Select
+                      value={ws.systemType}
+                      onChange={ws.setSystemType}
+                      options={SYSTEM_TYPES.map((v) => ({ value: v, label: v }))}
+                      style={{ width: "100%", marginTop: 2 }}
+                    />
+                  </div>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>测试类型</Text>
                     <Select

@@ -129,7 +129,7 @@ export async function exportOutput(projectId: string, format: string, targets: s
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `testpilot-${projectId}.xlsx`;
+    a.download = `linghang-${projectId}.xlsx`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -140,7 +140,7 @@ export async function exportOutput(projectId: string, format: string, targets: s
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `testpilot-${projectId}.json`;
+    a.download = `linghang-${projectId}.json`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -150,7 +150,7 @@ export async function exportOutput(projectId: string, format: string, targets: s
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `testpilot-${projectId}.md`;
+    a.download = `linghang-${projectId}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();

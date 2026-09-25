@@ -12,7 +12,7 @@ from app.schemas.output_schemas import (
     TestCasesOutput,
     TestPlanOutput,
     TestPointsOutput,
-    TestScriptsOutput,
+    TestDesignOutput,
     TestStrategyOutput,
 )
 from app.services import generation_service as rule_service
@@ -25,7 +25,7 @@ TARGET_SCHEMA = {
     "test_plan": TestPlanOutput,
     "test_points": TestPointsOutput,
     "test_cases": TestCasesOutput,
-    "test_script": TestScriptsOutput,
+    "test_design": TestDesignOutput,
 }
 
 TARGET_PROMPT = {
@@ -34,7 +34,7 @@ TARGET_PROMPT = {
     "test_plan": "test_plan",
     "test_points": "test_points",
     "test_cases": "test_cases",
-    "test_script": "test_script",
+    "test_design": "test_design",
 }
 
 

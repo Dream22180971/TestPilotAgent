@@ -110,6 +110,7 @@ flowchart LR
 | Generation pipeline | ✅ | strategy / plan / test points / cases / scripts, one-click generate all |
 | Follow-up refinement | ✅ | refine any module with natural-language follow-ups |
 | JSON / Markdown / Excel export | ✅ | pick modules and export |
+| Test-design mind map | ✅ | infinite canvas with drag editing; export to XMind / FreeMind / Markdown / PNG / SVG |
 | Structured schema validation | 🚧 | planned with Pydantic |
 | Excel / XMind export | 🚧 | planned |
 
@@ -206,6 +207,7 @@ Making limitations explicit is intentional: this repository is a working enginee
 - [x] Persistent database
 - [x] Follow-up and partial regeneration
 - [x] JSON / Markdown / Excel export
+- [x] Test-design mind map (XMind / FreeMind / Markdown / PNG / SVG export)
 - [ ] Pydantic structured output validation
 - [ ] Multi-model support
 - [ ] Regular dogfooding

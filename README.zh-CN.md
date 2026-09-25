@@ -88,7 +88,7 @@ flowchart LR
     C --> D[测试策略]
     C --> E[测试点]
     C --> F[测试用例]
-    C --> G[测试脚本]
+    C --> G[测试设计]
     D --> H[人工评审]
     E --> H
     F --> H
@@ -110,6 +110,7 @@ flowchart LR
 | 生成流水线 | ✅ | 策略 / 计划 / 测试点 / 用例 / 脚本，支持一键全部生成 |
 | 追问修改 | ✅ | 每个模块可自然语言追问调整输出 |
 | JSON / Markdown / Excel 导出 | ✅ | 按模块勾选导出 |
+| 测试设计思维导图 | ✅ | 无限画布可拖拽编辑，导出 XMind / FreeMind / Markdown / PNG / SVG |
 | 结构化 Schema 校验 | 🚧 | 计划使用 Pydantic |
 
 ---
@@ -205,6 +206,7 @@ DATABASE_URL="sqlite:///./testpilot.db"
 - [x] 数据持久化
 - [x] 追问与局部重生成
 - [x] JSON / Markdown / Excel 导出
+- [x] 测试设计思维导图（XMind / FreeMind / Markdown / PNG / SVG 导出）
 - [ ] Pydantic 结构化输出校验
 - [ ] 多模型支持
 - [ ] 持续 Dogfooding

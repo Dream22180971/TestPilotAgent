@@ -9,7 +9,7 @@ from app.services.generation_service import (
     generate_test_cases,
     generate_test_plan,
     generate_test_points,
-    generate_test_script,
+    generate_test_design,
     generate_test_strategy,
 )
 from app.services.llm_generation_service import analyze_with_llm, generate_with_llm
@@ -17,7 +17,7 @@ from app.services.llm_generation_service import analyze_with_llm, generate_with_
 router = APIRouter()
 store = DatabaseStore()
 
-TARGETS = ["analysis", "test_strategy", "test_plan", "test_points", "test_cases", "test_script"]
+TARGETS = ["analysis", "test_strategy", "test_plan", "test_points", "test_cases", "test_design"]
 
 
 @router.post("/{project_id}/generate")
@@ -88,10 +88,10 @@ def _generate_single(
         content = generate_with_llm(
             project, requirement, target, str(analysis), previous_content, doc_context
         ) or generate_test_plan(analysis)
-    elif target == "test_script":
+    elif target == "test_design":
         content = generate_with_llm(
             project, requirement, target, str(analysis), previous_content, doc_context
-        ) or generate_test_script(project, analysis)
+        ) or generate_test_design(project, analysis)
     else:
         content = analysis
 
@@ -146,10 +146,10 @@ def _generate_all(
             content = generate_with_llm(
                 project, requirement, t, str(analysis), prev_content, doc_context
             ) or generate_test_plan(analysis)
-        elif t == "test_script":
+        elif t == "test_design":
             content = generate_with_llm(
                 project, requirement, t, str(analysis), prev_content, doc_context
-            ) or generate_test_script(project, analysis)
+            ) or generate_test_design(project, analysis)
         else:
             content = analysis
 

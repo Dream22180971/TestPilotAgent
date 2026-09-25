@@ -52,17 +52,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               alignItems: "center",
               justifyContent: "center",
               fontWeight: 700,
-              fontSize: 16,
+              fontSize: 15,
             }}
           >
-            T
+            领
           </div>
           <div>
-            <Text strong style={{ display: "block", lineHeight: 1.2 }}>
-              TestPilot
+            <Text strong style={{ display: "block", lineHeight: 1.2, fontSize: 15 }}>
+              领航
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              测试工作台
+              AI 测试工作台
             </Text>
           </div>
         </div>

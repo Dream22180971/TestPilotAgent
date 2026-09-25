@@ -21,7 +21,6 @@ import type {
   TestCaseRow,
   TestPlan,
   TestPointRow,
-  TestScripts,
   TestStrategy,
 } from "@/types/output";
 import type { RequirementAnalysis } from "@/types/requirement";
@@ -32,7 +31,7 @@ export const PIPELINE_TARGETS = [
   "test_plan",
   "test_points",
   "test_cases",
-  "test_script",
+  "test_design",
 ] as const;
 
 export type PipelineTarget = (typeof PIPELINE_TARGETS)[number];
@@ -43,7 +42,7 @@ export const TARGET_LABELS: Record<string, string> = {
   test_plan: "测试计划",
   test_points: "测试点",
   test_cases: "测试用例",
-  test_script: "测试脚本",
+  test_design: "测试设计",
 };
 
 export type ModuleStatus = "empty" | "busy" | "done";
@@ -76,7 +75,7 @@ export function useWorkspace() {
   const [testPlan, setTestPlan] = useState<TestPlan | null>(null);
   const [testPoints, setTestPoints] = useState<TestPointRow[]>([]);
   const [testCases, setTestCases] = useState<TestCaseRow[]>([]);
-  const [testScripts, setTestScripts] = useState<TestScripts | null>(null);
+  const [testDesign, setTestDesign] = useState<string | null>(null);
 
   /** 统一 loading 字典：analyze | gen:<target> | follow:<target> | export */
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -151,12 +150,12 @@ export function useWorkspace() {
     if (content.test_plan) setTestPlan(content.test_plan);
     if (content.test_points) setTestPoints(content.test_points.rows ?? []);
     if (content.test_cases) setTestCases(content.test_cases.cases ?? []);
-    if (content.test_script) setTestScripts(content.test_script);
+    if (content.test_design) setTestDesign(content.test_design.markdown ?? null);
     if (response.target === "test_points") setTestPoints(content.rows ?? []);
     if (response.target === "test_cases") setTestCases(content.cases ?? []);
     if (response.target === "test_strategy") setTestStrategy(content.test_strategy ?? null);
     if (response.target === "test_plan") setTestPlan(content.test_plan ?? null);
-    if (response.target === "test_script") setTestScripts(content.test_script ?? null);
+    if (response.target === "test_design") setTestDesign(content.test_design?.markdown ?? content.markdown ?? null);
   }
 
   async function runAnalyze(): Promise<boolean> {
@@ -318,7 +317,7 @@ export function useWorkspace() {
     setTestPlan(null);
     setTestPoints([]);
     setTestCases([]);
-    setTestScripts(null);
+    setTestDesign(null);
   }
 
   /** 模块状态：驱动 Steps 流水线 */
@@ -335,8 +334,8 @@ export function useWorkspace() {
         return testPoints.length > 0 ? "done" : "empty";
       case "test_cases":
         return testCases.length > 0 ? "done" : "empty";
-      case "test_script":
-        return testScripts ? "done" : "empty";
+      case "test_design":
+        return testDesign ? "done" : "empty";
       default:
         return "empty";
     }
@@ -363,7 +362,7 @@ export function useWorkspace() {
     testPlan,
     testPoints,
     testCases,
-    testScripts,
+    testDesign,
     // 动作
     runAnalyze,
     runGenerate,

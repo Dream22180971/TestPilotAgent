@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, Empty, Tag, Typography } from "antd";
-import type { TestPlan, TestScripts, TestStrategy, ScriptFile } from "@/types/output";
+import type { TestPlan, TestStrategy } from "@/types/output";
 import type { RequirementAnalysis } from "@/types/requirement";
 
 const { Text, Paragraph } = Typography;
@@ -164,52 +164,6 @@ export function PlanView({ plan }: { plan: TestPlan | null }) {
               {item}
             </Tag>
           ))}
-        </Section>
-      )}
-    </div>
-  );
-}
-
-export function ScriptsView({ scripts }: { scripts: TestScripts | null }) {
-  if (!scripts) {
-    return <EmptyHint text="尚未生成测试脚本。点击上方「生成」开始。" />;
-  }
-  return (
-    <div>
-      <Section label="技术栈">
-        <Tag color="blue">{scripts.language}</Tag>
-        <Tag color="geekblue">{scripts.framework}</Tag>
-      </Section>
-      {scripts.files.map((file: ScriptFile, index) => (
-        <Card
-          key={index}
-          size="small"
-          title={file.filename}
-          style={{ marginBottom: 8 }}
-          styles={{ body: { padding: 0 } }}
-        >
-          <pre
-            style={{
-              margin: 0,
-              padding: 12,
-              whiteSpace: "pre-wrap",
-              fontSize: 12,
-              lineHeight: 1.6,
-              maxHeight: 420,
-              overflow: "auto",
-              background: "#fafafa",
-              borderRadius: "0 0 8px 8px",
-            }}
-          >
-            {file.code}
-          </pre>
-        </Card>
-      ))}
-      {scripts.setup_instructions && (
-        <Section label="运行说明">
-          <Paragraph style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
-            {scripts.setup_instructions}
-          </Paragraph>
         </Section>
       )}
     </div>

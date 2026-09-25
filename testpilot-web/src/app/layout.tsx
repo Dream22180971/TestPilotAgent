@@ -8,8 +8,8 @@ import "dayjs/locale/zh-cn";
 import { workbenchTheme } from "@/theme";
 
 export const metadata: Metadata = {
-  title: "TestPilot 测试工作台",
-  description: "上传需求，AI 生成测试策略、测试点、测试用例与脚本",
+  title: "领航 · AI 测试工作台",
+  description: "上传需求，AI 生成测试策略、测试点、测试用例与测试设计",
 };
 
 dayjs.locale("zh-cn");

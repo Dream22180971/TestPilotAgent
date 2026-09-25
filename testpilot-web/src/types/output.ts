@@ -47,19 +47,6 @@ export interface TestPlan {
   dependencies: string[];
 }
 
-export interface ScriptFile {
-  filename: string;
-  language: string;
-  code: string;
-}
-
-export interface TestScripts {
-  language: string;
-  framework: string;
-  files: ScriptFile[];
-  setup_instructions: string;
-}
-
 export interface GenerateOutputResponse {
   project_id: string;
   target: string;
@@ -73,7 +60,8 @@ export interface GenerateOutputResponse {
     test_cases?: { cases?: TestCaseRow[] };
     test_strategy?: TestStrategy;
     test_plan?: TestPlan;
-    test_script?: TestScripts;
+    test_design?: { markdown?: string };
+    markdown?: string;
   };
 }
 

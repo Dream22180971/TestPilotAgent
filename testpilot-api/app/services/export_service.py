@@ -14,13 +14,13 @@ from app.services.db_store import DatabaseStore
 
 store = DatabaseStore()
 
-STORE_TARGETS = ["test_strategy", "test_plan", "test_points", "test_cases", "test_script"]
+STORE_TARGETS = ["test_strategy", "test_plan", "test_points", "test_cases", "test_design"]
 TARGET_LABELS = {
     "test_strategy": "测试策略",
     "test_plan": "测试计划",
     "test_points": "测试点",
     "test_cases": "测试用例",
-    "test_script": "测试脚本",
+    "test_design": "测试设计",
 }
 
 
@@ -96,7 +96,7 @@ def _export_excel(project_id: str, outputs: dict[str, Any]) -> dict:
             _write_dict_sheet(ws, content, header_font, header_fill)
         elif target_key == "test_plan":
             _write_dict_sheet(ws, content, header_font, header_fill)
-        elif target_key == "test_script":
+        elif target_key == "test_design":
             _write_dict_sheet(ws, content, header_font, header_fill)
         else:
             _write_dict_sheet(ws, content, header_font, header_fill)

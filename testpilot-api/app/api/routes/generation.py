@@ -5,7 +5,13 @@ from app.database import get_db
 from app.schemas.generation import GenerateRequest
 from app.services.db_store import DatabaseStore
 from app.services.generation_service import build_analysis as rule_build_analysis
-from app.services.generation_service import generate_test_cases, generate_test_points
+from app.services.generation_service import (
+    generate_test_cases,
+    generate_test_plan,
+    generate_test_points,
+    generate_test_script,
+    generate_test_strategy,
+)
 from app.services.llm_generation_service import analyze_with_llm, generate_with_llm
 
 router = APIRouter()
@@ -55,7 +61,8 @@ def _generate_single(
     # Get or generate analysis for context
     analysis_output = store.get_output(db, project_id, "analysis")
     analysis = analysis_output["content"] if analysis_output else (
-        analyze_with_llm(project, requirement, doc_context) or rule_build_analysis(project, requirement)
+        analyze_with_llm(project, requirement, doc_context)
+        or rule_build_analysis(project, requirement, doc_context)
     )
 
     # Get previous output for context
@@ -64,13 +71,29 @@ def _generate_single(
 
     # Try LLM first, fall back to rule engine
     if target == "test_points":
-        content = generate_with_llm(project, requirement, target, analysis, previous_content, doc_context) or generate_test_points(analysis)
+        content = generate_with_llm(
+            project, requirement, target, analysis, previous_content, doc_context
+        ) or generate_test_points(analysis)
     elif target == "test_cases":
         points_output = store.get_output(db, project_id, "test_points")
         pts = points_output["content"] if points_output else {"rows": []}
-        content = generate_with_llm(project, requirement, target, str(pts), previous_content, doc_context) or generate_test_cases(pts)
+        content = generate_with_llm(
+            project, requirement, target, str(pts), previous_content, doc_context
+        ) or generate_test_cases(pts)
+    elif target == "test_strategy":
+        content = generate_with_llm(
+            project, requirement, target, str(analysis), previous_content, doc_context
+        ) or generate_test_strategy(project, analysis)
+    elif target == "test_plan":
+        content = generate_with_llm(
+            project, requirement, target, str(analysis), previous_content, doc_context
+        ) or generate_test_plan(analysis)
+    elif target == "test_script":
+        content = generate_with_llm(
+            project, requirement, target, str(analysis), previous_content, doc_context
+        ) or generate_test_script(project, analysis)
     else:
-        content = generate_with_llm(project, requirement, target, str(analysis), previous_content, doc_context) or {"note": f"Rule engine fallback for {target}"}
+        content = analysis
 
     record = store.save_output(db, project_id, target, content)
     return {
@@ -95,7 +118,8 @@ def _generate_all(
     # Get or generate analysis
     analysis_output = store.get_output(db, project_id, "analysis")
     analysis = analysis_output["content"] if analysis_output else (
-        analyze_with_llm(project, requirement, doc_context) or rule_build_analysis(project, requirement)
+        analyze_with_llm(project, requirement, doc_context)
+        or rule_build_analysis(project, requirement, doc_context)
     )
     store.save_output(db, project_id, "analysis", analysis)
 
@@ -105,13 +129,29 @@ def _generate_all(
         prev_content = prev["content"] if prev else None
 
         if t == "test_points":
-            content = generate_with_llm(project, requirement, t, str(analysis), prev_content, doc_context) or generate_test_points(analysis)
+            content = generate_with_llm(
+                project, requirement, t, str(analysis), prev_content, doc_context
+            ) or generate_test_points(analysis)
         elif t == "test_cases":
             points_output = store.get_output(db, project_id, "test_points")
             pts = points_output["content"] if points_output else {"rows": []}
-            content = generate_with_llm(project, requirement, t, str(pts), prev_content, doc_context) or generate_test_cases(pts)
+            content = generate_with_llm(
+                project, requirement, t, str(pts), prev_content, doc_context
+            ) or generate_test_cases(pts)
+        elif t == "test_strategy":
+            content = generate_with_llm(
+                project, requirement, t, str(analysis), prev_content, doc_context
+            ) or generate_test_strategy(project, analysis)
+        elif t == "test_plan":
+            content = generate_with_llm(
+                project, requirement, t, str(analysis), prev_content, doc_context
+            ) or generate_test_plan(analysis)
+        elif t == "test_script":
+            content = generate_with_llm(
+                project, requirement, t, str(analysis), prev_content, doc_context
+            ) or generate_test_script(project, analysis)
         else:
-            content = generate_with_llm(project, requirement, t, str(analysis), prev_content, doc_context) or {"note": f"Rule engine fallback for {t}"}
+            content = analysis
 
         store.save_output(db, project_id, t, content)
         results[t] = content
@@ -131,13 +171,11 @@ def _collect_document_context(db: Session, project_id: str, requirement_id: str)
     if not docs:
         return None
 
-    # Find documents whose text preview was used as raw_input (i.e. uploaded docs)
     relevant_texts = []
     relevant_filenames = []
     for doc in docs:
-        preview = doc.get("text_preview", "")
         full_text = doc.get("extracted_text", "")
-        if preview and full_text != preview:
+        if full_text.strip():
             relevant_texts.append(f"[File: {doc['filename']}] {full_text}")
             relevant_filenames.append(doc["filename"])
 

@@ -26,7 +26,9 @@ def analyze_requirement(project_id: str, payload: AnalyzeRequest, db: Session = 
     doc_context = _collect_document_context(db, project_id, payload.requirement_id)
 
     # Try LLM first, fall back to rule engine
-    content = analyze_with_llm(project, requirement, doc_context) or rule_build_analysis(project, requirement)
+    content = analyze_with_llm(project, requirement, doc_context) or rule_build_analysis(
+        project, requirement, doc_context
+    )
 
     # Save analysis as output for later reference
     store.save_output(db, project_id, "analysis", content)

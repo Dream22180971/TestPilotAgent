@@ -39,6 +39,8 @@ The goal is not to remove human judgment. It is to reduce repetitive test-design
 
 ## ⚡ Quick Start
 
+On Windows you can simply run `start-api.ps1` and `start-web.ps1` from the repo root; or do it manually:
+
 ### 1. Backend
 
 ```bash
@@ -105,7 +107,9 @@ flowchart LR
 | AI-assisted generation | ✅ | DashScope-compatible model integration |
 | Rule fallback | ✅ | basic generation path without an API key |
 | Project persistence | ✅ | SQLite by default, PostgreSQL supported through `DATABASE_URL` |
-| Follow-up refinement | 🚧 | still evolving |
+| Generation pipeline | ✅ | strategy / plan / test points / cases / scripts, one-click generate all |
+| Follow-up refinement | ✅ | refine any module with natural-language follow-ups |
+| JSON / Markdown / Excel export | ✅ | pick modules and export |
 | Structured schema validation | 🚧 | planned with Pydantic |
 | Excel / XMind export | 🚧 | planned |
 
@@ -200,9 +204,9 @@ Making limitations explicit is intentional: this repository is a working enginee
 - [x] Document upload and parsing
 - [x] LLM integration
 - [x] Persistent database
+- [x] Follow-up and partial regeneration
+- [x] JSON / Markdown / Excel export
 - [ ] Pydantic structured output validation
-- [ ] Follow-up and partial regeneration
-- [ ] Excel / XMind export
 - [ ] Multi-model support
 - [ ] Regular dogfooding
 

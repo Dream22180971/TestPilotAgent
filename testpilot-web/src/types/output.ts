@@ -1,3 +1,5 @@
+import type { RequirementAnalysis } from "@/types/requirement";
+
 export interface TestPointRow {
   id: string;
   module: string;
@@ -66,9 +68,9 @@ export interface GenerateOutputResponse {
   content: {
     rows?: TestPointRow[];
     cases?: TestCaseRow[];
-    analysis?: Record<string, unknown>;
-    test_points?: Record<string, unknown>;
-    test_cases?: Record<string, unknown>;
+    analysis?: RequirementAnalysis;
+    test_points?: { rows?: TestPointRow[] };
+    test_cases?: { cases?: TestCaseRow[] };
     test_strategy?: TestStrategy;
     test_plan?: TestPlan;
     test_script?: TestScripts;

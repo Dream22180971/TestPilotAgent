@@ -39,6 +39,8 @@ TestPilotAgent 是一个面向测试工程师的 AI 工作台。上传需求文�
 
 ## ⚡ 5 分钟快速开始
 
+Windows 用户可以直接双击根目录的 `start-api.ps1` 与 `start-web.ps1`；或手动：
+
 ### 1. 启动后端
 
 ```bash
@@ -105,9 +107,10 @@ flowchart LR
 | AI 辅助生成 | ✅ | 对接 DashScope 兼容模型 |
 | 规则兜底 | ✅ | 没有 API Key 时可走基础生成路径 |
 | 项目持久化 | ✅ | 默认 SQLite，也支持 `DATABASE_URL` 切 PostgreSQL |
-| 追问修改 | 🚧 | 持续完善 |
+| 生成流水线 | ✅ | 策略 / 计划 / 测试点 / 用例 / 脚本，支持一键全部生成 |
+| 追问修改 | ✅ | 每个模块可自然语言追问调整输出 |
+| JSON / Markdown / Excel 导出 | ✅ | 按模块勾选导出 |
 | 结构化 Schema 校验 | 🚧 | 计划使用 Pydantic |
-| Excel / XMind 导出 | 🚧 | 规划中 |
 
 ---
 
@@ -200,9 +203,9 @@ DATABASE_URL="sqlite:///./testpilot.db"
 - [x] 文档上传与解析
 - [x] 大模型集成
 - [x] 数据持久化
+- [x] 追问与局部重生成
+- [x] JSON / Markdown / Excel 导出
 - [ ] Pydantic 结构化输出校验
-- [ ] 追问与局部重生成
-- [ ] Excel / XMind 导出
 - [ ] 多模型支持
 - [ ] 持续 Dogfooding
 

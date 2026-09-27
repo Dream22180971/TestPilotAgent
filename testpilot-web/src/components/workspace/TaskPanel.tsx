@@ -37,7 +37,7 @@ export default function TaskPanel({ task }: { task: TaskState | null }) {
       size="small"
       title={
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          {running ? <Spin size="small" /> : <ThunderboltOutlined style={{ color: "#1677ff" }} />}
+          {running ? <Spin size="small" /> : <ThunderboltOutlined style={{ color: "#0D9488" }} />}
           <span>{running ? "正在生成" : "任务完成"}</span>
           <Tag color={running ? "processing" : task.stage === "error" ? "error" : "success"}>
             {running ? task.message || "进行中…" : task.message}

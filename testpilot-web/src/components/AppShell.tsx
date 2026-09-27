@@ -58,7 +58,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               width: 32,
               height: 32,
               borderRadius: 8,
-              background: "linear-gradient(135deg, #1677ff, #69b1ff)",
+              background: "linear-gradient(135deg, #0D9488, #5EEAD4)",
               color: "#fff",
               display: "flex",
               alignItems: "center",

@@ -123,7 +123,7 @@ export default function WorkspacePage() {
         )}
         {status === "done" && <Tag color="success">{target === "analysis" ? "已分析" : "已生成"}</Tag>}
         {rounds > 0 && (
-          <Tag color="orange" icon={<EditOutlined />}>
+          <Tag color="blue" icon={<EditOutlined />}>
             已修订 {rounds} 轮
           </Tag>
         )}
@@ -274,9 +274,9 @@ export default function WorkspacePage() {
                   </Tooltip>
                   <Tooltip title={`测试点 ${ws.testPoints.length} · 用例 ${ws.testCases.length}`} placement="right">
                     <div style={{ fontSize: 11, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
-                      <div style={{ fontWeight: 700, color: "#1677ff", fontSize: 14 }}>{ws.testPoints.length}</div>
+                      <div style={{ fontWeight: 700, color: "#0D9488", fontSize: 14 }}>{ws.testPoints.length}</div>
                       测试点
-                      <div style={{ fontWeight: 700, color: "#1677ff", fontSize: 14, marginTop: 8 }}>{ws.testCases.length}</div>
+                      <div style={{ fontWeight: 700, color: "#0D9488", fontSize: 14, marginTop: 8 }}>{ws.testCases.length}</div>
                       测试用例
                     </div>
                   </Tooltip>
@@ -326,7 +326,7 @@ export default function WorkspacePage() {
                     style={{ background: "#fafafa" }}
                   >
                     <p className="ant-upload-drag-icon">
-                      <CloudUploadOutlined style={{ color: "#1677ff" }} />
+                      <CloudUploadOutlined style={{ color: "#0D9488" }} />
                     </p>
                     <p className="ant-upload-text" style={{ fontSize: 13 }}>
                       点击或拖拽上传需求文档
@@ -377,7 +377,7 @@ export default function WorkspacePage() {
               <div style={{ marginTop: "auto" }}>
                 <Card
                   size="small"
-                  style={{ background: "linear-gradient(135deg, #e6f4ff 0%, #f5f9ff 100%)", border: "1px solid #d6e8ff" }}
+                  style={{ background: "linear-gradient(135deg, #CCFBF1 0%, #F0FDFA 100%)", border: "1px solid #99F6E4" }}
                   title={
                     <Space>
                       <BulbOutlined style={{ color: "#fa8c16" }} />
@@ -462,7 +462,7 @@ export default function WorkspacePage() {
               <Card
                 title={
                   <Space>
-                    <ThunderboltOutlined style={{ color: "#1677ff" }} />
+                    <ThunderboltOutlined style={{ color: "#0D9488" }} />
                     生成流水线
                   </Space>
                 }
@@ -474,6 +474,10 @@ export default function WorkspacePage() {
                     icon={<RocketOutlined />}
                     loading={ws.isBusy("gen:all")}
                     onClick={ws.runGenerateAll}
+                    style={{
+                      background: "linear-gradient(135deg, #EA580C 0%, #F97316 100%)",
+                      boxShadow: "0 2px 8px rgba(234, 88, 12, 0.28)",
+                    }}
                   >
                     一键生成全部
                   </Button>
@@ -525,7 +529,7 @@ export default function WorkspacePage() {
       <Modal
         title={
           <Space>
-            <ExpandOutlined style={{ color: "#1668dc" }} />
+            <ExpandOutlined style={{ color: "#0D9488" }} />
             {TARGET_LABELS[fullscreenTab ?? ""] ?? "全屏"} · 全屏查看
           </Space>
         }

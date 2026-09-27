@@ -39,8 +39,8 @@ function Section({
             width: 24,
             height: 24,
             borderRadius: 6,
-            background: "#e6f4ff",
-            color: "#1677ff",
+            background: "#CCFBF1",
+            color: "#0D9488",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -62,7 +62,7 @@ function StatPill({ label, value, color }: { label: string; value: number; color
     <div
       style={{
         background: "#fff",
-        border: "1px solid #e8eef5",
+        border: "1px solid #E2E8F0",
         borderRadius: 8,
         padding: "4px 14px",
         textAlign: "center",
@@ -87,9 +87,9 @@ export function EmptyHint({ text }: { text: string }) {
         style={{
           width: "100%",
           maxWidth: 720,
-          background: "linear-gradient(135deg, #e6f4ff 0%, #f5f9ff 100%)",
+          background: "linear-gradient(135deg, #CCFBF1 0%, #F0FDFA 100%)",
           border: "1px dashed #b8d4ff",
-          borderRadius: 14,
+          borderRadius: 12,
           padding: "26px 24px",
         }}
       >
@@ -104,7 +104,7 @@ export function EmptyHint({ text }: { text: string }) {
                 flex: "1 1 180px",
                 maxWidth: 220,
                 background: "#fff",
-                border: "1px solid #e8eef5",
+                border: "1px solid #E2E8F0",
                 borderRadius: 10,
                 padding: "14px 16px",
                 boxShadow: "0 1px 2px rgba(15,28,46,0.04)",
@@ -115,7 +115,7 @@ export function EmptyHint({ text }: { text: string }) {
                   width: 34,
                   height: 34,
                   borderRadius: 10,
-                  background: "linear-gradient(135deg, #1668dc, #4096ff)",
+                  background: "linear-gradient(135deg, #0D9488, #2DD4BF)",
                   color: "#fff",
                   fontSize: 16,
                   display: "inline-flex",
@@ -126,7 +126,7 @@ export function EmptyHint({ text }: { text: string }) {
               >
                 {step.icon}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f1c2e", marginBottom: 4 }}>{step.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{step.title}</div>
               <div style={{ fontSize: 12, lineHeight: 1.7, color: "#64748b" }}>{step.desc}</div>
             </div>
           ))}
@@ -151,22 +151,22 @@ export function AnalysisView({ analysis }: { analysis: RequirementAnalysis | nul
       {/* 业务目标摘要卡 */}
       <div
         style={{
-          background: "linear-gradient(135deg, #e6f4ff 0%, #f5f9ff 100%)",
-          border: "1px solid #d6e8ff",
+          background: "linear-gradient(135deg, #CCFBF1 0%, #F0FDFA 100%)",
+          border: "1px solid #99F6E4",
           borderRadius: 12,
           padding: "18px 22px",
           marginBottom: 20,
         }}
       >
         <Space size={6} style={{ marginBottom: 8 }}>
-          <AimOutlined style={{ color: "#1677ff" }} />
+          <AimOutlined style={{ color: "#0D9488" }} />
           <Text strong style={{ fontSize: 15 }}>业务目标</Text>
         </Space>
         <Paragraph style={{ fontSize: 14, lineHeight: 1.9, marginBottom: 14 }}>
           {analysis.business_goal}
         </Paragraph>
         <Space size={10} wrap>
-          <StatPill label="功能模块" value={analysis.modules.length} color="#1677ff" />
+          <StatPill label="功能模块" value={analysis.modules.length} color="#0D9488" />
           <StatPill label="用户角色" value={analysis.roles.length} color="#722ed1" />
           <StatPill label="核心流程" value={flows.length} color="#13c2c2" />
           <StatPill label="业务规则" value={rules.length} color="#fa8c16" />
@@ -213,7 +213,7 @@ export function AnalysisView({ analysis }: { analysis: RequirementAnalysis | nul
                   minWidth: 22,
                   height: 22,
                   borderRadius: "50%",
-                  background: "#1677ff",
+                  background: "#0D9488",
                   color: "#fff",
                   fontSize: 12,
                   display: "inline-flex",
@@ -236,8 +236,8 @@ export function AnalysisView({ analysis }: { analysis: RequirementAnalysis | nul
             <div
               key={i}
               style={{
-                borderLeft: "3px solid #1677ff",
-                background: "#f8fbff",
+                borderLeft: "3px solid #0D9488",
+                background: "#F0FDFA",
                 padding: "8px 14px",
                 marginBottom: 6,
                 fontSize: 13,

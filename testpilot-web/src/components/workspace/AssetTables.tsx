@@ -53,7 +53,7 @@ const CASE_COLUMNS: ColumnsType<TestCaseRow> = [
     title: "操作",
     key: "actions",
     width: 70,
-    render: (_, record) => <Text style={{ color: "#1677ff" }}>详情</Text>,
+    render: (_, record) => <Text style={{ color: "#0D9488" }}>详情</Text>,
   },
 ];
 

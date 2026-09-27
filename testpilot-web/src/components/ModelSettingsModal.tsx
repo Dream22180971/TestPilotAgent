@@ -142,7 +142,7 @@ export default function ModelSettingsModal({
     <Modal
       title={
         <Space>
-          <ApiOutlined style={{ color: "#1677ff" }} />
+          <ApiOutlined style={{ color: "#0D9488" }} />
           模型配置
         </Space>
       }

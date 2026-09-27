@@ -6,14 +6,14 @@ import type { ThemeConfig } from "antd";
  */
 export const workbenchTheme: ThemeConfig = {
   token: {
-    colorPrimary: "#1668dc",
-    colorInfo: "#1668dc",
+    colorPrimary: "#0D9488",
+    colorInfo: "#0D9488",
     borderRadius: 8,
     fontSize: 14,
-    colorBgLayout: "#eef3fa",
-    colorTextHeading: "#0f1c2e",
+    colorBgLayout: "#F0FDFA",
+    colorTextHeading: "#0F172A",
     colorText: "#334155",
-    colorLink: "#1668dc",
+    colorLink: "#0D9488",
     boxShadowSecondary: "0 8px 24px rgba(15, 28, 46, 0.10)",
   },
   components: {
@@ -22,7 +22,7 @@ export const workbenchTheme: ThemeConfig = {
       headerHeight: 56,
       headerPadding: "0 24px",
       siderBg: "#fbfdff",
-      bodyBg: "#eef3fa",
+      bodyBg: "#F0FDFA",
     },
     Card: {
       headerFontSize: 15,
@@ -31,13 +31,13 @@ export const workbenchTheme: ThemeConfig = {
       marginXS: 4,
     },
     Table: {
-      headerBg: "#f7faff",
+      headerBg: "#F0FDFA",
       fontSize: 13,
       headerBorderRadius: 8,
     },
     Menu: {
       itemSelectedBg: "#e6f0ff",
-      itemSelectedColor: "#1668dc",
+      itemSelectedColor: "#0D9488",
       itemBorderRadius: 10,
       itemMarginInline: 10,
     },

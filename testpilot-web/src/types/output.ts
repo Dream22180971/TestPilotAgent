@@ -71,6 +71,8 @@ export interface UploadDocumentResponse {
   filename: string;
   file_format: string;
   text_preview: string;
+  /** 提取的完整文本（text_preview 是前 500 字预览） */
+  text?: string;
   page_count: number;
   status: string;
 }

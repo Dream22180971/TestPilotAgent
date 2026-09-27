@@ -331,7 +331,8 @@ export function useWorkspace() {
     try {
       const { nextProjectId } = await ensureProjectAndRequirement();
       const result = await uploadDocument(nextProjectId, file);
-      if (result.text_preview) setRequirementText(result.text_preview);
+      if (result.text) setRequirementText(result.text);
+      else if (result.text_preview) setRequirementText(result.text_preview);
       await refreshDocuments(nextProjectId);
       message.success(`文档「${result.filename}」已上传并提取文本。`);
       return true;

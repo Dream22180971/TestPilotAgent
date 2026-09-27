@@ -297,6 +297,7 @@ export default function WorkspacePage() {
                   </Upload.Dragger>
                   <TextArea
                     rows={8}
+                    autoSize={{ minRows: 8, maxRows: 24 }}
                     value={ws.requirementText}
                     onChange={(e) => ws.setRequirementText(e.target.value)}
                     placeholder="或直接粘贴需求描述…"

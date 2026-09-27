@@ -75,6 +75,55 @@ class LLMClient:
             "base_url": self._base_url,
         }
 
+    def test_connection(
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
+        timeout: float = 30.0,
+    ) -> dict[str, Any]:
+        """Validate config without mutating runtime state.
+
+        1. GET /models — proves connectivity + key (some providers skip it).
+        2. Minimal chat — proves the specific model accepts requests.
+        """
+        import time
+
+        key = (api_key or self._api_key or "").strip()
+        url = (base_url or self._base_url or "").strip()
+        mdl = (model or self._model or "").strip()
+        if not key:
+            return {"ok": False, "error": "未配置 API Key"}
+
+        probe = OpenAI(api_key=key, base_url=url, timeout=timeout)
+        result: dict[str, Any] = {"ok": False, "models": [], "chat_ok": False}
+
+        try:
+            start = time.monotonic()
+            result["models"] = [m.id for m in probe.models.list()]
+            result["models_ok"] = True
+        except Exception as e:
+            result["models_ok"] = False
+            result["models_error"] = str(e)
+
+        try:
+            start = time.monotonic()
+            probe.chat.completions.create(
+                model=mdl,
+                temperature=0,
+                max_tokens=8,
+                messages=[{"role": "user", "content": "ping"}],
+            )
+            result["chat_ok"] = True
+            result["latency_ms"] = int((time.monotonic() - start) * 1000)
+        except Exception as e:
+            result["chat_error"] = str(e)
+
+        result["ok"] = result["chat_ok"]
+        if result["ok"]:
+            result["model"] = mdl
+        return result
+
     def chat(self, system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
         """Send a chat completion request and return the content string."""
         if not self.available:

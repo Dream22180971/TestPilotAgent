@@ -26,3 +26,31 @@ export async function updateLlmSettings(payload: UpdateLlmSettingsPayload): Prom
     body: JSON.stringify(payload),
   });
 }
+
+export interface TestConnectionResult {
+  ok: boolean;
+  models_ok?: boolean;
+  chat_ok?: boolean;
+  models?: string[];
+  latency_ms?: number;
+  error?: string;
+  models_error?: string;
+  chat_error?: string;
+  model?: string;
+}
+
+/** 测试连接（用填写的值或当前配置，不保存） */
+export async function testLlmConnection(payload: UpdateLlmSettingsPayload): Promise<TestConnectionResult> {
+  return request<TestConnectionResult>("/api/settings/test", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** 从服务拉取可用模型列表（不保存） */
+export async function fetchLlmModels(payload: UpdateLlmSettingsPayload): Promise<{ ok: boolean; models: string[]; error?: string }> {
+  return request<{ ok: boolean; models: string[]; error?: string }>("/api/settings/models", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

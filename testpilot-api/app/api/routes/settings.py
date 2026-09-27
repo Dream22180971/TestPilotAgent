@@ -73,6 +73,35 @@ def get_settings() -> dict:
     }
 
 
+@router.post("/test")
+def test_connection(payload: SettingsUpdate) -> dict:
+    """Test connectivity with the posted (or current) config, without saving."""
+    return llm_client.test_connection(
+        api_key=payload.api_key, model=payload.model, base_url=payload.base_url
+    )
+
+
+@router.post("/models")
+def fetch_models(payload: SettingsUpdate) -> dict:
+    """Fetch the provider's model list without saving or changing state."""
+    import time
+
+    from openai import OpenAI
+
+    key = (payload.api_key or llm_client._api_key or "").strip()
+    url = (payload.base_url or llm_client._base_url or "").strip()
+    if not key:
+        return {"ok": False, "models": [], "error": "未配置 API Key"}
+
+    probe = OpenAI(api_key=key, base_url=url, timeout=20.0)
+    try:
+        start = time.monotonic()
+        models = sorted(m.id for m in probe.models.list())
+        return {"ok": True, "models": models, "latency_ms": int((time.monotonic() - start) * 1000)}
+    except Exception as e:
+        return {"ok": False, "models": [], "error": str(e)}
+
+
 @router.post("")
 def update_settings(payload: SettingsUpdate) -> dict:
     """Update LLM config: hot-swap the running client and persist to .env."""

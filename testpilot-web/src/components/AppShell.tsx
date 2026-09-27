@@ -101,9 +101,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </Sider>
       <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <Layout>
-        <Content style={{ padding: 24 }}>
-          <div style={{ maxWidth: 1280, margin: "0 auto" }}>{children}</div>
-        </Content>
+        <Content style={{ padding: 24 }}>{children}</Content>
       </Layout>
     </Layout>
   );

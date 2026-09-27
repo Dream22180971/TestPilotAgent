@@ -1,11 +1,24 @@
 "use client";
 
-import { Alert, AutoComplete, Input, Modal, Space, Tag, Typography } from "antd";
-import { ApiOutlined } from "@ant-design/icons";
+import {
+  Alert,
+  AutoComplete,
+  Button,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Tag,
+  Typography,
+  message,
+} from "antd";
+import { ApiOutlined, LinkOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 
 import {
+  fetchLlmModels,
   getLlmSettings,
+  testLlmConnection,
   updateLlmSettings,
   type LlmSettings,
 } from "@/services/settings";
@@ -21,7 +34,8 @@ const MODEL_SUGGESTIONS = [
 ].map((v) => ({ value: v }));
 
 /**
- * 模型配置弹窗：配置 DashScope/OpenAI 兼容 API。
+ * 模型配置弹窗：配置任意 OpenAI 兼容服务（模型名与 Base URL 均可自定义），
+ * 支持「测试连接」验证可用性与「获取模型列表」直接选择。
  * 保存后立即生效（后端热切换），并持久化到 testpilot-api/.env。
  */
 export default function ModelSettingsModal({
@@ -31,11 +45,17 @@ export default function ModelSettingsModal({
   open: boolean;
   onClose: () => void;
 }) {
+  const [messageApi, contextHolder] = message.useMessage();
   const [settings, setSettings] = useState<LlmSettings | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [remoteModels, setRemoteModels] = useState<string[]>([]);
 
   async function load() {
     try {
@@ -51,20 +71,68 @@ export default function ModelSettingsModal({
   useEffect(() => {
     if (open) {
       setApiKey("");
+      setTestResult(null);
+      setRemoteModels([]);
       load();
     }
   }, [open]);
 
+  /** 当前表单里填的值（未保存的也能直接测试/拉列表） */
+  function currentPayload() {
+    const payload: Record<string, string> = {};
+    if (apiKey.trim()) payload.api_key = apiKey.trim();
+    if (model.trim()) payload.model = model.trim();
+    if (baseUrl.trim()) payload.base_url = baseUrl.trim();
+    return payload;
+  }
+
+  async function handleTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await testLlmConnection(currentPayload());
+      if (r.ok) {
+        setTestResult({ ok: true, text: `连接成功，模型 ${r.model} 响应 ${r.latency_ms}ms` });
+      } else {
+        const detail = r.chat_error ?? r.models_error ?? r.error ?? "未知错误";
+        setTestResult({ ok: false, text: `连接失败：${detail}` });
+      }
+    } catch (e) {
+      setTestResult({ ok: false, text: e instanceof Error ? e.message : "请求失败" });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleFetchModels() {
+    setFetchingModels(true);
+    try {
+      const r = await fetchLlmModels(currentPayload());
+      if (r.ok && r.models.length > 0) {
+        setRemoteModels(r.models);
+        messageApi.success(`获取到 ${r.models.length} 个模型`);
+      } else {
+        messageApi.error(r.error ?? "该服务未提供模型列表接口，请手动输入模型名");
+      }
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : "获取模型列表失败");
+    } finally {
+      setFetchingModels(false);
+    }
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
+      const prev = settings;
       const payload: Record<string, string> = {};
       if (apiKey.trim()) payload.api_key = apiKey.trim();
-      if (model.trim() && model.trim() !== settings?.model) payload.model = model.trim();
-      if (baseUrl.trim() && baseUrl.trim() !== settings?.base_url) payload.base_url = baseUrl.trim();
+      if (model.trim() && model.trim() !== prev?.model) payload.model = model.trim();
+      if (baseUrl.trim() && baseUrl.trim() !== prev?.base_url) payload.base_url = baseUrl.trim();
       const s = await updateLlmSettings(payload);
       setSettings(s);
       setApiKey("");
+      messageApi.success("已保存并生效");
     } finally {
       setSaving(false);
     }
@@ -84,8 +152,9 @@ export default function ModelSettingsModal({
       confirmLoading={saving}
       okText="保存并生效"
       cancelText="关闭"
-      width={520}
+      width={560}
     >
+      {contextHolder}
       <Space direction="vertical" size={14} style={{ width: "100%", marginTop: 8 }}>
         <Alert
           type={settings?.configured ? "success" : "info"}
@@ -116,19 +185,43 @@ export default function ModelSettingsModal({
             autoComplete="new-password"
           />
           <Text type="secondary" style={{ fontSize: 12 }}>
-            阿里云百炼控制台（bailian.console.aliyun.com）可创建 DashScope Key
+            支持任意 OpenAI 兼容服务：阿里云百炼 / DeepSeek / Moonshot / OpenAI 等
           </Text>
         </div>
 
         <div>
-          <Text strong style={{ display: "block", marginBottom: 4 }}>模型名称</Text>
-          <AutoComplete
-            value={model}
-            onChange={setModel}
-            options={MODEL_SUGGESTIONS}
-            placeholder="qwen-plus 等，可输入任意模型名"
-            style={{ width: "100%" }}
-          />
+          <Text strong style={{ display: "block", marginBottom: 4 }}>
+            模型名称{" "}
+            <Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>（可自定义输入）</Text>
+          </Text>
+          {remoteModels.length > 0 ? (
+            <Select
+              showSearch
+              value={model}
+              onChange={setModel}
+              options={remoteModels.map((m) => ({ value: m, label: m }))}
+              style={{ width: "100%" }}
+              placeholder="从服务获取的模型列表"
+            />
+          ) : (
+            <AutoComplete
+              value={model}
+              onChange={setModel}
+              options={MODEL_SUGGESTIONS}
+              placeholder="输入任意模型名"
+              style={{ width: "100%" }}
+            />
+          )}
+          <Button
+            size="small"
+            type="link"
+            icon={<ReloadOutlined />}
+            loading={fetchingModels}
+            onClick={handleFetchModels}
+            style={{ padding: 0, marginTop: 4 }}
+          >
+            {remoteModels.length > 0 ? "刷新模型列表" : "从服务获取模型列表"}
+          </Button>
         </div>
 
         <div>
@@ -140,6 +233,24 @@ export default function ModelSettingsModal({
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
           />
+        </div>
+
+        <div>
+          <Button
+            icon={<LinkOutlined />}
+            loading={testing}
+            onClick={handleTest}
+          >
+            测试连接
+          </Button>
+          {testResult && (
+            <Alert
+              style={{ marginTop: 8 }}
+              type={testResult.ok ? "success" : "error"}
+              showIcon
+              message={testResult.text}
+            />
+          )}
         </div>
 
         {settings && (

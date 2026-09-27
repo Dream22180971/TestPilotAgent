@@ -155,7 +155,8 @@ def build_prompts(
         context += f"\n\n## 需求分析结果\n{analysis}"
 
     system = render_prompt("system_prompt")
-    user = f"{render_prompt(prompt_name)}\n\n{context}"
+    # 思考语言提示放在 user 最前——部分模型（如 MiMo）思考语言跟随输入语言主导
+    user = f"【要求：全程使用简体中文思考（thinking），输出值均为中文】\n\n{render_prompt(prompt_name)}\n\n{context}"
 
     if previous_output:
         user += f"\n\n## 当前已有输出（供参考）\n{previous_output}"

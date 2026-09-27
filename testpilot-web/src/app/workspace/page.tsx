@@ -21,6 +21,7 @@ import {
   Upload,
 } from "antd";
 import {
+  BulbOutlined,
   CloudUploadOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
@@ -214,9 +215,9 @@ export default function WorkspacePage() {
 
   return (
     <AppShell>
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
         {/* 页头 */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
           <div>
             <Title level={4} style={{ margin: 0 }}>
               测试工作台
@@ -251,7 +252,7 @@ export default function WorkspacePage() {
           </Space>
         </div>
 
-        <Layout style={{ background: "transparent", minHeight: 620 }}>
+        <Layout style={{ background: "transparent", flex: 1, minHeight: 0 }}>
           {/* 左侧输入面板：可折叠 */}
           <Sider
             width={400}
@@ -263,9 +264,7 @@ export default function WorkspacePage() {
               background: "transparent",
               borderRight: "1px solid #eef1f5",
               paddingRight: siderCollapsed ? 0 : 8,
-              position: "sticky",
-              top: 16,
-              height: "calc(100vh - 32px)",
+              overflow: "hidden",
             }}
           >
             <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
@@ -284,8 +283,8 @@ export default function WorkspacePage() {
                   </Tooltip>
                 </div>
               ) : (
-                <div style={{ flex: 1, overflowY: "auto", paddingRight: 8 }}>
-                  <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                <div style={{ flex: 1, overflowY: "auto", paddingRight: 8, display: "flex", flexDirection: "column" }}>
+                  <Space direction="vertical" size={16} style={{ width: "100%", flex: 1 }}>
                     <Card title="项目设置" size="small">
                 <Space direction="vertical" size={10} style={{ width: "100%" }}>
                   <Input
@@ -376,6 +375,24 @@ export default function WorkspacePage() {
                 </Space>
               </Card>
 
+              <div style={{ marginTop: "auto" }}>
+                <Card
+                  size="small"
+                  style={{ background: "linear-gradient(135deg, #e6f4ff 0%, #f5f9ff 100%)", border: "1px solid #d6e8ff" }}
+                  title={
+                    <Space>
+                      <BulbOutlined style={{ color: "#fa8c16" }} />
+                      小贴士
+                    </Space>
+                  }
+                >
+                  <div style={{ fontSize: 12, lineHeight: 1.9, color: "#475569" }}>
+                    · 需求越具体，AI 拆解越精准；补充上下文可提升覆盖度
+                    <br />· 生成后可在各模块底部追问修订，每次修订都有记录
+                    <br />· 全部完成后用「导出」下载 Markdown / Excel 测试资产
+                  </div>
+                </Card>
+              </div>
               {ws.projectId && (
                 <Card title="需求文档" size="small">
                   {ws.documents.length === 0 ? (
@@ -439,8 +456,10 @@ export default function WorkspacePage() {
 
           {/* 右栏：流水线 + 结果 */}
           <Content style={{ paddingLeft: 16, minWidth: 0 }}>
-            <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <TaskPanel task={ws.task} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+              <div style={{ flexShrink: 0 }}>
+                <TaskPanel task={ws.task} />
+              </div>
               <Card
                 title={
                   <Space>
@@ -449,6 +468,7 @@ export default function WorkspacePage() {
                   </Space>
                 }
                 size="small"
+                style={{ flexShrink: 0 }}
                 extra={
                   <Button
                     type="primary"
@@ -486,7 +506,11 @@ export default function WorkspacePage() {
                 </Row>
               </Card>
 
-              <Card size="small" styles={{ body: { paddingTop: 4 } }}>
+              <Card
+                size="small"
+                style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+                styles={{ body: { paddingTop: 4, height: "100%", overflowY: "auto" } }}
+              >
                 <Tabs
                   activeKey={activeTab}
                   onChange={setActiveTab}
@@ -494,10 +518,10 @@ export default function WorkspacePage() {
                   destroyInactiveTabPane={false}
                 />
               </Card>
-            </Space>
+            </div>
           </Content>
         </Layout>
-      </Space>
+      </div>
 
       <Modal
         title={

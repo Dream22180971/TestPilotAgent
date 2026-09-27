@@ -5,9 +5,13 @@ import {
   AimOutlined,
   AppstoreOutlined,
   BulbOutlined,
+  CloudUploadOutlined,
+  FileDoneOutlined,
+  FileTextOutlined,
   CheckSquareOutlined,
   NodeIndexOutlined,
   QuestionCircleOutlined,
+  ThunderboltOutlined,
   TeamOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
@@ -70,8 +74,66 @@ function StatPill({ label, value, color }: { label: string; value: number; color
   );
 }
 
+const EMPTY_STEPS = [
+  { icon: <CloudUploadOutlined />, title: "① 输入需求", desc: "左侧粘贴需求，或上传 TXT / MD / PDF / DOCX 文档" },
+  { icon: <ThunderboltOutlined />, title: "② AI 生成", desc: "点击「分析需求」或「一键生成全部」" },
+  { icon: <FileDoneOutlined />, title: "③ 审阅修订", desc: "查看结果、全屏浏览、追问修订、导出资产" },
+];
+
 export function EmptyHint({ text }: { text: string }) {
-  return <Empty description={text} style={{ padding: "32px 0" }} />;
+  return (
+    <div style={{ padding: "20px 4px", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 720,
+          background: "linear-gradient(135deg, #e6f4ff 0%, #f5f9ff 100%)",
+          border: "1px dashed #b8d4ff",
+          borderRadius: 14,
+          padding: "26px 24px",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: 18 }}>
+          <Text strong style={{ fontSize: 14, color: "#334155" }}>{text}</Text>
+        </div>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          {EMPTY_STEPS.map((step) => (
+            <div
+              key={step.title}
+              style={{
+                flex: "1 1 180px",
+                maxWidth: 220,
+                background: "#fff",
+                border: "1px solid #e8eef5",
+                borderRadius: 10,
+                padding: "14px 16px",
+                boxShadow: "0 1px 2px rgba(15,28,46,0.04)",
+              }}
+            >
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, #1668dc, #4096ff)",
+                  color: "#fff",
+                  fontSize: 16,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 8,
+                }}
+              >
+                {step.icon}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0f1c2e", marginBottom: 4 }}>{step.title}</div>
+              <div style={{ fontSize: 12, lineHeight: 1.7, color: "#64748b" }}>{step.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function AnalysisView({ analysis }: { analysis: RequirementAnalysis | null }) {

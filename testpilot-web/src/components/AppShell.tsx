@@ -36,7 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     : "/workspace";
 
   return (
-    <Layout className="workbench-bg" style={{ minHeight: "100vh" }}>
+    <Layout className="workbench-bg" style={{ height: "100vh", overflow: "hidden" }}>
       <Sider
         width={208}
         collapsedWidth={64}
@@ -47,9 +47,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         theme="light"
         style={{
           borderRight: "1px solid #f0f0f0",
-          position: "sticky",
-          top: 0,
-          height: "100vh",
+          height: "100%",
           overflow: "auto",
           zIndex: 20,
         }}
@@ -127,7 +125,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </Sider>
       <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <Layout>
-        <Content style={{ padding: 24 }}>{children}</Content>
+        <Content style={{ padding: 24, height: "100%", overflow: "hidden" }}>{children}</Content>
       </Layout>
     </Layout>
   );

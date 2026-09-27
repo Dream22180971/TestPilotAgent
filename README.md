@@ -29,7 +29,9 @@ The goal is not to remove human judgment. It is to reduce repetitive test-design
 
 <div align="center">
 
-<img width="92%" alt="TestPilotAgent workbench" src="https://github.com/user-attachments/assets/91fafcbb-f987-4fb3-befa-99bff8884d6a" />
+<img width="2560" height="1346" alt="image" src="https://github.com/user-attachments/assets/bd87f73b-a6af-4cf3-aef4-7d7f7f196d94" />
+<img width="2560" height="1346" alt="image" src="https://github.com/user-attachments/assets/18dc8c1e-dacc-4e51-9e03-39ca69afb7dc" />
+<img width="2560" height="1346" alt="image" src="https://github.com/user-attachments/assets/fece7c68-c1cb-4e8e-872c-6e7aa98ce823" />
 
 </div>
 

@@ -19,3 +19,8 @@ export async function createProject(payload: CreateProjectPayload): Promise<Proj
 export async function listProjects(): Promise<{ items: Project[] }> {
   return request<{ items: Project[] }>("/api/projects");
 }
+
+/** 获取单个项目；不存在时抛错（用于失效检测） */
+export async function getProject(projectId: string): Promise<Project> {
+  return request<Project>(`/api/projects/${projectId}`);
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { App as AntdApp } from "antd";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   analyzeRequirement,
@@ -14,7 +14,7 @@ import {
   streamGenerate,
   uploadDocument,
 } from "@/services/generation";
-import { createProject, listProjects } from "@/services/project";
+import { createProject, getProject, listProjects } from "@/services/project";
 import type { Project } from "@/types/project";
 import type {
   DocumentRow,
@@ -120,12 +120,28 @@ export function useWorkspace() {
     }
   }, []);
 
+  // 已保存需求时的正文快照：文本变了就重新保存，保证分析/生成始终用最新内容
+  const savedTextRef = useRef<string | null>(null);
+
   async function ensureProjectAndRequirement(): Promise<{
     nextProjectId: string;
     nextRequirementId: string;
   }> {
     let nextProjectId = projectId;
     let nextRequirementId = requirementId;
+
+    // 自愈：内存里的项目可能已被删除（如清理数据库后未刷新页面）
+    if (nextProjectId) {
+      try {
+        await getProject(nextProjectId);
+      } catch {
+        nextProjectId = null;
+        nextRequirementId = null;
+        setProjectId(null);
+        setRequirementId(null);
+        savedTextRef.current = null;
+      }
+    }
 
     if (!nextProjectId) {
       const project = await createProject({
@@ -137,9 +153,12 @@ export function useWorkspace() {
       });
       nextProjectId = project.id;
       setProjectId(project.id);
+      savedTextRef.current = null;
     }
 
-    if (!nextRequirementId) {
+    // 需求正文/上下文有变化（或首次）时重新保存，替换旧的需求记录
+    const contextSignature = JSON.stringify([businessFlow, rolesText, nonFunctionalText]);
+    if (!nextRequirementId || savedTextRef.current !== `${requirementText}\u0000${contextSignature}`) {
       const saved = await saveRequirement(nextProjectId, {
         raw_input: requirementText,
         extra_context: {
@@ -150,6 +169,7 @@ export function useWorkspace() {
       });
       nextRequirementId = saved.requirement_id;
       setRequirementId(saved.requirement_id);
+      savedTextRef.current = `${requirementText}\u0000${contextSignature}`;
     }
 
     return { nextProjectId, nextRequirementId };
@@ -378,6 +398,7 @@ export function useWorkspace() {
   /** 从历史记录打开项目：恢复配置与文档（生成结果不可回读，需重新生成） */
   async function openProject(project: Project): Promise<void> {
     startNewProject();
+    savedTextRef.current = null;
     setProjectName(project.name);
     setSystemType(project.system_type);
     setTestTypes(project.test_types?.length ? project.test_types : ["功能测试"]);
@@ -391,6 +412,7 @@ export function useWorkspace() {
   function startNewProject(): void {
     setProjectId(null);
     setRequirementId(null);
+    savedTextRef.current = null;
     setProjectName("");
     setRequirementText("");
     setBusinessFlow("");

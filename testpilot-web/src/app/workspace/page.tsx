@@ -5,6 +5,7 @@ import {
   Card,
   Col,
   Collapse,
+  Layout,
   Input,
   Popconfirm,
   Row,
@@ -13,12 +14,16 @@ import {
   Statistic,
   Steps,
   Tabs,
+  Tooltip,
   Tag,
   Typography,
   Upload,
 } from "antd";
 import {
   CloudUploadOutlined,
+  DoubleLeftOutlined,
+  DoubleRightOutlined,
+  EditOutlined,
   ExportOutlined,
   FileTextOutlined,
   PlayCircleOutlined,
@@ -31,7 +36,7 @@ import { useEffect, useState } from "react";
 
 import AppShell from "@/components/AppShell";
 import ExportModal from "@/components/workspace/ExportModal";
-import FollowupBox from "@/components/workspace/FollowupBox";
+import FollowupPanel, { type FollowupRecord } from "@/components/workspace/FollowupPanel";
 import {
   AnalysisView,
   PlanView,
@@ -47,6 +52,7 @@ import {
 import { useWorkspaceContext } from "@/components/WorkspaceProvider";
 
 const { TextArea } = Input;
+const { Sider, Content } = Layout;
 const { Title, Text, Paragraph } = Typography;
 
 // mind-elixir 依赖浏览器 DOM，仅在客户端加载画布
@@ -63,6 +69,7 @@ const STEP_ORDER = ["analysis", ...PIPELINE_TARGETS];
 export default function WorkspacePage() {
   const ws = useWorkspaceContext();
   const [activeTab, setActiveTab] = useState("analysis");
+  const [siderCollapsed, setSiderCollapsed] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
 
   // 从历史页打开项目（sessionStorage 传递，避免 SSR 查询参数问题）。
@@ -84,19 +91,27 @@ export default function WorkspacePage() {
     return status === "done" ? "finish" : status === "busy" ? "process" : "wait";
   };
 
-  const tabToolbar = (target: string) => (
-    <Space style={{ marginBottom: 16 }}>
-      <Button
-        type="primary"
-        icon={<PlayCircleOutlined />}
-        loading={ws.isBusy(`gen:${target}`)}
-        onClick={() => ws.runGenerate(target)}
-      >
-        {ws.moduleStatus(target) === "done" ? "重新生成" : "生成"}
-      </Button>
-      {ws.moduleStatus(target) === "done" && <Tag color="success">已生成</Tag>}
-    </Space>
-  );
+  const tabToolbar = (target: string) => {
+    const rounds = ws.followups[target]?.filter((r) => r.status === "done").length ?? 0;
+    return (
+      <Space style={{ marginBottom: 16 }}>
+        <Button
+          type="primary"
+          icon={<PlayCircleOutlined />}
+          loading={ws.isBusy(`gen:${target}`)}
+          onClick={() => ws.runGenerate(target)}
+        >
+          {ws.moduleStatus(target) === "done" ? "重新生成" : "生成"}
+        </Button>
+        {ws.moduleStatus(target) === "done" && <Tag color="success">已生成</Tag>}
+        {rounds > 0 && (
+          <Tag color="orange" icon={<EditOutlined />}>
+            已修订 {rounds} 轮
+          </Tag>
+        )}
+      </Space>
+    );
+  };
 
   const tabItems = [
     {
@@ -125,8 +140,9 @@ export default function WorkspacePage() {
         <div>
           {tabToolbar("test_strategy")}
           <StrategyView strategy={ws.testStrategy} />
-          <FollowupBox
+          <FollowupPanel
             targetLabel={TARGET_LABELS.test_strategy}
+            records={(ws.followups.test_strategy ?? []) as FollowupRecord[]}
             loading={ws.isBusy("follow:test_strategy")}
             disabled={!ws.testStrategy}
             onSubmit={(text) => ws.runFollowup("test_strategy", text)}
@@ -141,8 +157,9 @@ export default function WorkspacePage() {
         <div>
           {tabToolbar("test_plan")}
           <PlanView plan={ws.testPlan} />
-          <FollowupBox
+          <FollowupPanel
             targetLabel={TARGET_LABELS.test_plan}
+            records={(ws.followups.test_plan ?? []) as FollowupRecord[]}
             loading={ws.isBusy("follow:test_plan")}
             disabled={!ws.testPlan}
             onSubmit={(text) => ws.runFollowup("test_plan", text)}
@@ -157,8 +174,9 @@ export default function WorkspacePage() {
         <div>
           {tabToolbar("test_points")}
           <TestPointsTable rows={ws.testPoints} />
-          <FollowupBox
+          <FollowupPanel
             targetLabel={TARGET_LABELS.test_points}
+            records={(ws.followups.test_points ?? []) as FollowupRecord[]}
             loading={ws.isBusy("follow:test_points")}
             disabled={ws.testPoints.length === 0}
             onSubmit={(text) => ws.runFollowup("test_points", text)}
@@ -173,8 +191,9 @@ export default function WorkspacePage() {
         <div>
           {tabToolbar("test_cases")}
           <TestCasesTable rows={ws.testCases} />
-          <FollowupBox
+          <FollowupPanel
             targetLabel={TARGET_LABELS.test_cases}
+            records={(ws.followups.test_cases ?? []) as FollowupRecord[]}
             loading={ws.isBusy("follow:test_cases")}
             disabled={ws.testCases.length === 0}
             onSubmit={(text) => ws.runFollowup("test_cases", text)}
@@ -189,8 +208,9 @@ export default function WorkspacePage() {
         <div>
           {tabToolbar("test_design")}
           <MindmapView markdown={ws.testDesign} />
-          <FollowupBox
+          <FollowupPanel
             targetLabel={TARGET_LABELS.test_design}
+            records={(ws.followups.test_design ?? []) as FollowupRecord[]}
             loading={ws.isBusy("follow:test_design")}
             disabled={!ws.testDesign}
             onSubmit={(text) => ws.runFollowup("test_design", text)}
@@ -244,11 +264,42 @@ export default function WorkspacePage() {
           </Space>
         </div>
 
-        <Row gutter={[16, 16]}>
-          {/* 左栏：输入区 */}
-          <Col xs={24} lg={8}>
-            <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              <Card title="项目设置" size="small">
+        <Layout style={{ background: "transparent", minHeight: 620 }}>
+          {/* 左侧输入面板：可折叠 */}
+          <Sider
+            width={400}
+            collapsedWidth={64}
+            collapsed={siderCollapsed}
+            theme="light"
+            trigger={null}
+            style={{
+              background: "transparent",
+              borderRight: "1px solid #eef1f5",
+              paddingRight: siderCollapsed ? 0 : 8,
+              position: "sticky",
+              top: 16,
+              height: "calc(100vh - 32px)",
+            }}
+          >
+            <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+              {siderCollapsed ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, paddingTop: 12 }}>
+                  <Tooltip title="项目设置 / 需求输入（点击展开）" placement="right">
+                    <Button type="text" icon={<CloudUploadOutlined />} onClick={() => setSiderCollapsed(false)} />
+                  </Tooltip>
+                  <Tooltip title={`测试点 ${ws.testPoints.length} · 用例 ${ws.testCases.length}`} placement="right">
+                    <div style={{ fontSize: 11, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
+                      <div style={{ fontWeight: 700, color: "#1677ff", fontSize: 14 }}>{ws.testPoints.length}</div>
+                      测试点
+                      <div style={{ fontWeight: 700, color: "#1677ff", fontSize: 14, marginTop: 8 }}>{ws.testCases.length}</div>
+                      测试用例
+                    </div>
+                  </Tooltip>
+                </div>
+              ) : (
+                <div style={{ flex: 1, overflowY: "auto", paddingRight: 8 }}>
+                  <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                    <Card title="项目设置" size="small">
                 <Space direction="vertical" size={10} style={{ width: "100%" }}>
                   <Input
                     value={ws.projectName}
@@ -383,11 +434,24 @@ export default function WorkspacePage() {
                   )}
                 </Card>
               )}
-            </Space>
-          </Col>
+                </Space>
+              </div>
+              )}
+              <Button
+                block
+                type="text"
+                size="small"
+                icon={siderCollapsed ? <DoubleRightOutlined /> : <DoubleLeftOutlined />}
+                onClick={() => setSiderCollapsed(!siderCollapsed)}
+                style={{ borderTop: "1px solid #eef1f5", borderRadius: 0 }}
+              >
+                {siderCollapsed ? "" : "收起面板"}
+              </Button>
+            </div>
+          </Sider>
 
           {/* 右栏：流水线 + 结果 */}
-          <Col xs={24} lg={16}>
+          <Content style={{ paddingLeft: 16, minWidth: 0 }}>
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
               <TaskPanel task={ws.task} />
               <Card
@@ -444,8 +508,8 @@ export default function WorkspacePage() {
                 />
               </Card>
             </Space>
-          </Col>
-        </Row>
+          </Content>
+        </Layout>
       </Space>
 
       <ExportModal

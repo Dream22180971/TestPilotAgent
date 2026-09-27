@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Layout, Menu, Typography } from "antd";
+import { Button, Layout, Menu, Tooltip, Typography } from "antd";
 import {
   ExperimentOutlined,
   HistoryOutlined,
@@ -30,6 +30,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const selectedKey = NAV_ITEMS.some((item) => item.key === pathname)
     ? pathname
     : "/workspace";
@@ -38,6 +39,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <Layout style={{ minHeight: "100vh" }}>
       <Sider
         width={208}
+        collapsedWidth={64}
+        collapsible
+        breakpoint="lg"
+        collapsed={navCollapsed}
+        onCollapse={setNavCollapsed}
         theme="light"
         style={{
           borderRight: "1px solid #f0f0f0",
@@ -45,9 +51,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           top: 0,
           height: "100vh",
           overflow: "auto",
+          zIndex: 20,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px", justifyContent: navCollapsed ? "center" : "flex-start" }}>
           <div
             style={{
               width: 32,
@@ -64,14 +71,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           >
             领
           </div>
-          <div>
-            <Text strong style={{ display: "block", lineHeight: 1.2, fontSize: 15 }}>
-              领航
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              AI 测试工作台
-            </Text>
-          </div>
+          {!navCollapsed && (
+            <div>
+              <Text strong style={{ display: "block", lineHeight: 1.2, fontSize: 15 }}>
+                领航
+              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                AI 测试工作台
+              </Text>
+            </div>
+          )}
         </div>
         <Menu
           mode="inline"
@@ -80,26 +89,40 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onClick={({ key }) => router.push(key)}
           style={{ borderInlineEnd: "none" }}
         />
-        <div style={{ position: "absolute", bottom: 16, width: "100%", padding: "0 20px" }}>
+        <div style={{ position: "absolute", bottom: 16, width: "100%", padding: navCollapsed ? 0 : "0 20px", textAlign: navCollapsed ? "center" : "left" }}>
           <div style={{ marginBottom: 10 }}>
-            <Button
-              type="text"
-              size="small"
-              icon={<SettingOutlined />}
-              onClick={() => setSettingsOpen(true)}
-              style={{ padding: "0 0", color: "rgba(0,0,0,0.65)", fontSize: 13 }}
-            >
-              模型配置
-            </Button>
+            {navCollapsed ? (
+              <Tooltip title="模型配置" placement="right">
+                <Button type="text" size="small" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} />
+              </Tooltip>
+            ) : (
+              <Button
+                type="text"
+                size="small"
+                icon={<SettingOutlined />}
+                onClick={() => setSettingsOpen(true)}
+                style={{ padding: "0 0", color: "rgba(0,0,0,0.65)", fontSize: 13 }}
+              >
+                模型配置
+              </Button>
+            )}
           </div>
-          <Link
-            href="https://github.com/Dream22180971/TestPilotAgent"
-            target="_blank"
-            style={{ color: "rgba(0,0,0,0.45)", fontSize: 12 }}
-          >
-            <GithubOutlined style={{ marginRight: 6 }} />
-            GitHub 仓库
-          </Link>
+          {navCollapsed ? (
+            <Tooltip title="GitHub 仓库" placement="right">
+              <Link href="https://github.com/Dream22180971/TestPilotAgent" target="_blank" style={{ color: "rgba(0,0,0,0.45)", fontSize: 14 }}>
+                <GithubOutlined />
+              </Link>
+            </Tooltip>
+          ) : (
+            <Link
+              href="https://github.com/Dream22180971/TestPilotAgent"
+              target="_blank"
+              style={{ color: "rgba(0,0,0,0.45)", fontSize: 12 }}
+            >
+              <GithubOutlined style={{ marginRight: 6 }} />
+              GitHub 仓库
+            </Link>
+          )}
         </div>
       </Sider>
       <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />

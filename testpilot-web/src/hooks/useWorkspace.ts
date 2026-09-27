@@ -81,6 +81,9 @@ export function useWorkspace() {
   /** 统一 loading 字典：analyze | gen:<target> | follow:<target> | export */
   const [busy, setBusy] = useState<Record<string, boolean>>({});
 
+  /** 每个模块的追问修订记录：指令 + 处理状态 */
+  const [followups, setFollowups] = useState<Record<string, Array<{ instruction: string; status: "pending" | "done" | "error"; at: number }>>>({});
+
   /**
    * 当前生成任务：实时阶段消息 + 模型思考过程（流式累积）。
    * reasoning 按 target 分段保存，生成完成后保留供回看。
@@ -338,16 +341,30 @@ export function useWorkspace() {
       return false;
     }
     setBusyKey(`follow:${target}`, true);
+    const record = { instruction, status: "pending" as const, at: Date.now() };
+    setFollowups((prev) => ({ ...prev, [target]: [...(prev[target] ?? []), record] }));
     try {
       const response = await followup(projectId, target, instruction);
       if (response.status === "not_found") {
         message.warning(`尚未生成「${TARGET_LABELS[target] ?? target}」，请先生成。`);
+        setFollowups((prev) => ({
+          ...prev,
+          [target]: (prev[target] ?? []).map((r) => (r.at === record.at ? { ...r, status: "error" as const } : r)),
+        }));
         return false;
       }
       applyGenerated(response);
-      message.success("已按追问更新输出。");
+      setFollowups((prev) => ({
+        ...prev,
+        [target]: (prev[target] ?? []).map((r) => (r.at === record.at ? { ...r, status: "done" as const } : r)),
+      }));
+      message.success(`已按追问更新${TARGET_LABELS[target] ?? ""}。`);
       return true;
     } catch (error) {
+      setFollowups((prev) => ({
+        ...prev,
+        [target]: (prev[target] ?? []).map((r) => (r.at === record.at ? { ...r, status: "error" as const } : r)),
+      }));
       message.error(error instanceof Error ? error.message : "追问处理失败。");
       return false;
     } finally {
@@ -433,6 +450,7 @@ export function useWorkspace() {
     setTestPoints([]);
     setTestCases([]);
     setTestDesign(null);
+    setFollowups({});
   }
 
   /** 模块状态：驱动 Steps 流水线 */
@@ -492,6 +510,7 @@ export function useWorkspace() {
     isBusy,
     moduleStatus,
     task,
+    followups,
   };
 }
 

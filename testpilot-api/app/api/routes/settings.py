@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.services.llm_client import DEFAULT_MODEL, llm_client
@@ -25,6 +25,15 @@ class SettingsUpdate(BaseModel):
     api_key: str | None = None
     model: str | None = None
     base_url: str | None = None
+
+
+def _check_env_value(value: str) -> str:
+    """Values are written as KEY="value" lines; refuse anything that could
+    break out of the line or the quotes."""
+    value = value.strip()
+    if any(ch in value for ch in ('"', "\n", "\r")):
+        raise HTTPException(status_code=400, detail="配置值不能包含引号或换行")
+    return value
 
 
 def _read_env_file() -> dict[str, str]:
@@ -88,10 +97,9 @@ def fetch_models(payload: SettingsUpdate) -> dict:
 
     from openai import OpenAI
 
-    key = (payload.api_key or llm_client._api_key or "").strip()
-    url = (payload.base_url or llm_client._base_url or "").strip()
+    key, url = llm_client.probe_credentials(payload.api_key, payload.base_url)
     if not key:
-        return {"ok": False, "models": [], "error": "未配置 API Key"}
+        return {"ok": False, "models": [], "error": "未配置 API Key（更换 Base URL 时需同时填写对应的 Key）"}
 
     probe = OpenAI(api_key=key, base_url=url, timeout=20.0)
     try:
@@ -105,15 +113,20 @@ def fetch_models(payload: SettingsUpdate) -> dict:
 @router.post("")
 def update_settings(payload: SettingsUpdate) -> dict:
     """Update LLM config: hot-swap the running client and persist to .env."""
-    if payload.api_key is None and payload.model is None and payload.base_url is None:
+    values = {field: _check_env_value(v) for field in ENV_KEYS if (v := getattr(payload, field))}
+    if not values:
         return {"status": "no_change", **llm_client.status()}
 
-    llm_client.update_config(api_key=payload.api_key, model=payload.model, base_url=payload.base_url)
+    # A new endpoint must come with its own key, so the saved key is never
+    # silently redirected to a different host.
+    new_url = values.get("base_url")
+    if new_url and new_url.rstrip("/") != llm_client.status()["base_url"].rstrip("/") and "api_key" not in values:
+        raise HTTPException(status_code=400, detail="更换 Base URL 时请同时填写该服务的 API Key")
 
-    for field, env_key in ENV_KEYS.items():
-        value = getattr(payload, field)
-        if value:
-            os.environ[env_key] = value.strip()
-            _write_env_key(env_key, value.strip())
+    llm_client.update_config(**values)
+
+    for field, value in values.items():
+        os.environ[ENV_KEYS[field]] = value
+        _write_env_key(ENV_KEYS[field], value)
 
     return {"status": "saved", **llm_client.status()}

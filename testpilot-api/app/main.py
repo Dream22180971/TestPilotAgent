@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,10 +31,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="领航 API", version="0.2.0", lifespan=lifespan)
+# Only the local web app may call the API from a browser: the settings routes
+# hold the LLM key, so a wildcard would let any visited page drive them.
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://127.0.0.1:3000,http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[o.strip() for o in CORS_ORIGINS.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )

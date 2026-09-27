@@ -75,6 +75,16 @@ class LLMClient:
             "base_url": self._base_url,
         }
 
+    def probe_credentials(self, api_key: str | None, base_url: str | None) -> tuple[str, str]:
+        """(key, url) for a probe request. The stored key is only ever sent to
+        the stored base URL; probing another endpoint needs an explicit key."""
+        url = (base_url or self._base_url or "").strip()
+        if api_key and api_key.strip():
+            return api_key.strip(), url
+        if url.rstrip("/") != (self._base_url or "").rstrip("/"):
+            return "", url
+        return self._api_key, url
+
     def test_connection(
         self,
         api_key: str | None = None,
@@ -89,11 +99,10 @@ class LLMClient:
         """
         import time
 
-        key = (api_key or self._api_key or "").strip()
-        url = (base_url or self._base_url or "").strip()
+        key, url = self.probe_credentials(api_key, base_url)
         mdl = (model or self._model or "").strip()
         if not key:
-            return {"ok": False, "error": "未配置 API Key"}
+            return {"ok": False, "error": "未配置 API Key（更换 Base URL 时需同时填写对应的 Key）"}
 
         probe = OpenAI(api_key=key, base_url=url, timeout=timeout)
         result: dict[str, Any] = {"ok": False, "models": [], "chat_ok": False}

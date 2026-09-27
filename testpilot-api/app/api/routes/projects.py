@@ -26,3 +26,15 @@ def get_project(project_id: str, db: Session = Depends(get_db)) -> dict:
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+@router.get("/{project_id}/snapshot")
+def get_project_snapshot(project_id: str, db: Session = Depends(get_db)) -> dict:
+    """Latest requirement + every saved output, for reopening a project."""
+    if not store.get_project(db, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {
+        "requirement": store.get_latest_requirement(db, project_id),
+        "outputs": {o["target"]: o["content"] for o in store.list_outputs(db, project_id)},
+        "followups": store.list_followups(db, project_id),
+    }

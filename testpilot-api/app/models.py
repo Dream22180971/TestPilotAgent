@@ -23,6 +23,7 @@ class ProjectModel(Base):
     requirements = relationship("RequirementModel", back_populates="project", cascade="all, delete-orphan")
     outputs = relationship("OutputModel", back_populates="project", cascade="all, delete-orphan")
     documents = relationship("DocumentModel", back_populates="project", cascade="all, delete-orphan")
+    followups = relationship("FollowupModel", back_populates="project", cascade="all, delete-orphan")
 
     def to_dict(self):
         return {
@@ -106,4 +107,40 @@ class DocumentModel(Base):
             "text_preview": self.text_preview,
             "page_count": self.page_count,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class FollowupModel(Base):
+    """One follow-up round on a module: the question, the AI answer and what the user did with it."""
+
+    __tablename__ = "followups"
+
+    id = Column(String, primary_key=True)
+    project_id = Column(String, ForeignKey("projects.id"), nullable=False, index=True)
+    target = Column(String, nullable=False)
+    instruction = Column(Text, nullable=False)
+    # thinking | answered (question only) | proposed (awaiting confirm) | applied | discarded | error
+    status = Column(String, nullable=False, default="thinking")
+    reply = Column(Text, default="")
+    changes = Column(JSON, default=list)
+    revised = Column(JSON, nullable=True)
+    detail = Column(Text, default="")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    project = relationship("ProjectModel", back_populates="followups")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "target": self.target,
+            "instruction": self.instruction,
+            "status": self.status,
+            "reply": self.reply or "",
+            "changes": self.changes or [],
+            "revised": self.revised,
+            "detail": self.detail or "",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

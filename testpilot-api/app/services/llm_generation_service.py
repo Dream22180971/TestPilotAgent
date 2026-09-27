@@ -1,32 +1,18 @@
-"""LLM-powered generation service with Pydantic schema validation.
+"""LLM-powered generation with Pydantic schema validation.
 
-Falls back to rule-based generation_service when LLM is unavailable.
+Callers fall back to the rule engine (generation_service) when these
+functions yield/return None.
 """
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Any
 
-from app.schemas.output_schemas import (
-    SCHEMA_MAP,
-    TestCasesOutput,
-    TestPlanOutput,
-    TestPointsOutput,
-    TestScriptsOutput,
-    TestStrategyOutput,
-)
-from app.services import generation_service as rule_service
+from app.schemas.output_schemas import SCHEMA_MAP
 from app.services.llm_client import llm_client
 from app.services.prompt_loader import render_prompt
-
-TARGET_SCHEMA = {
-    "analysis": None,
-    "test_strategy": TestStrategyOutput,
-    "test_plan": TestPlanOutput,
-    "test_points": TestPointsOutput,
-    "test_cases": TestCasesOutput,
-    "test_script": TestScriptsOutput,
-}
 
 TARGET_PROMPT = {
     "analysis": "requirement_analysis",
@@ -34,16 +20,39 @@ TARGET_PROMPT = {
     "test_plan": "test_plan",
     "test_points": "test_points",
     "test_cases": "test_cases",
-    "test_script": "test_script",
+    "test_design": "test_design",
 }
 
+_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
 
-def _build_context(
-    project: dict,
-    requirement: dict,
-    doc_context: dict | None = None,
-) -> str:
-    """Build a context string from project and requirement for prompts."""
+
+def parse_llm_json(raw: str) -> dict[str, Any]:
+    """Parse a model answer as a JSON object, tolerating ```json fences
+    and chatter around the object (seen with some OpenAI-compatible hosts)."""
+    text = _FENCE_RE.sub("", raw.strip())
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start < 0 or end <= start:
+            raise
+        return json.loads(text[start : end + 1])
+
+
+def validate_output(target: str, content: dict[str, Any]) -> dict[str, Any]:
+    """Coerce content into the target's schema; raises on invalid shape."""
+    schema_cls = SCHEMA_MAP.get(target)
+    return schema_cls(**content).model_dump() if schema_cls else content
+
+
+def _as_prompt_text(value: Any) -> str:
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False, indent=1)
+    return str(value)
+
+
+def _build_context(project: dict, requirement: dict, doc_context: dict | None = None) -> str:
+    """Build a context string from project, requirement and uploaded documents."""
     extra = requirement.get("extra_context", {}) or {}
     parts = [
         f"## 项目信息\n系统类型: {project.get('system_type', '')}",
@@ -69,68 +78,67 @@ def _build_context(
     return "\n".join(parts)
 
 
-def analyze_with_llm(project: dict, requirement: dict, doc_context: dict | None = None) -> dict[str, Any] | None:
-    """Use LLM to analyze requirements. Returns None to trigger fallback."""
-    if not llm_client.available:
-        return None
-
-    context = _build_context(project, requirement, doc_context)
-    system = render_prompt("system_prompt")
-    user = f"{render_prompt('requirement_analysis')}\n\n{context}"
-
-    try:
-        result = llm_client.chat_structured(system, user)
-        result.setdefault("modules", [])
-        result.setdefault("roles", [])
-        result.setdefault("core_flows", [])
-        result.setdefault("unknowns", [])
-        result.setdefault("risks", [])
-        return result
-    except Exception:
-        return None
-
-
-def generate_with_llm(
+def build_prompts(
     project: dict,
     requirement: dict,
     target: str,
-    analysis: dict | None = None,
-    previous_output: dict | None = None,
+    basis: Any = None,
+    previous_output: Any = None,
     doc_context: dict | None = None,
-) -> dict[str, Any] | None:
-    """Generate structured output using LLM for the given target.
+) -> tuple[str, str] | None:
+    """Assemble (system, user) prompts for a target; None if target unknown.
 
-    Falls back to rule engine if LLM is unavailable or fails.
+    `basis` is the upstream output this target builds on: the requirement
+    analysis for most targets, the test points for test_cases.
     """
-    if not llm_client.available:
-        return None
-
     prompt_name = TARGET_PROMPT.get(target)
     if not prompt_name:
         return None
 
-    context = _build_context(project, requirement)
-    if analysis:
-        context += f"\n\n## 需求分析结果\n{analysis}"
-
-    if doc_context and doc_context.get("has_documents"):
-        context += f"\n\n## 上传文档参考"
-        context += f"\n文档列表：{', '.join(doc_context['filenames'])}"
-        context += f"\n\n{doc_context['combined_text']}"
+    context = _build_context(project, requirement, doc_context)
+    if basis:
+        heading = "测试点" if target == "test_cases" else "需求分析结果"
+        context += f"\n\n## {heading}\n{_as_prompt_text(basis)}"
 
     system = render_prompt("system_prompt")
-    prompt_text = render_prompt(prompt_name)
-    user = f"{prompt_text}\n\n{context}"
+    # 思考语言提示放在 user 最前——部分模型（如 MiMo）思考语言跟随输入语言主导
+    user = f"【要求：全程使用简体中文思考（thinking），输出值均为中文】\n\n{render_prompt(prompt_name)}\n\n{context}"
 
     if previous_output:
-        user += f"\n\n## 当前已有输出（供参考）\n{previous_output}"
+        user += f"\n\n## 当前已有输出（供参考）\n{_as_prompt_text(previous_output)}"
+    return system, user
+
+
+def generate_with_llm_stream(
+    project: dict,
+    requirement: dict,
+    target: str,
+    basis: Any = None,
+    previous_output: Any = None,
+    doc_context: dict | None = None,
+):
+    """Yield {"reasoning": str} deltas while the model thinks, then a final
+    {"result": dict} (validated output) or {"result": None} on failure."""
+    prompts = build_prompts(project, requirement, target, basis, previous_output, doc_context)
+    if prompts is None:
+        yield {"result": None}
+        return
+    system, user = prompts
+
+    full = ""
+    try:
+        for chunk in llm_client.chat_stream(system, user):
+            if "reasoning" in chunk:
+                yield chunk
+            elif "content" in chunk:
+                full += chunk["content"]
+            elif "done" in chunk:
+                full = chunk["done"]
+    except Exception:
+        yield {"result": None}
+        return
 
     try:
-        result = llm_client.chat_structured(system, user)
-        schema_cls = TARGET_SCHEMA.get(target)
-        if schema_cls:
-            validated = schema_cls(**result)
-            return validated.model_dump()
-        return result
+        yield {"result": validate_output(target, parse_llm_json(full))}
     except Exception:
-        return None
+        yield {"result": None}

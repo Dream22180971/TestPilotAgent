@@ -3,9 +3,9 @@ from __future__ import annotations
 from app.services.memory_store import extract_roles, infer_modules
 
 
-def build_analysis(project: dict, requirement: dict) -> dict:
+def build_analysis(project: dict, requirement: dict, doc_context: dict | None = None) -> dict:
     raw_input = requirement["raw_input"]
-    extra_context = requirement["extra_context"]
+    extra_context = requirement.get("extra_context") or {}
     source_text = " ".join(
         [
             raw_input,
@@ -22,6 +22,11 @@ def build_analysis(project: dict, requirement: dict) -> dict:
     non_functional = extra_context.get("non_functional")
     if isinstance(non_functional, list):
         constraints.extend([str(item) for item in non_functional])
+
+    business_rules: list[str] = []
+    if doc_context and doc_context.get("has_documents"):
+        filenames = "、".join(doc_context.get("filenames", []))
+        business_rules.append(f"分析已结合上传文档：{filenames}。")
 
     risks = ["当前为规则驱动的基础分析，后续可接入大模型提升覆盖深度。"]
     if not raw_input.strip():
@@ -41,7 +46,7 @@ def build_analysis(project: dict, requirement: dict) -> dict:
         "roles": roles,
         "modules": modules,
         "core_flows": [core_flow],
-        "business_rules": [],
+        "business_rules": business_rules,
         "constraints": constraints,
         "risks": risks,
         "unknowns": unknowns,
@@ -111,3 +116,70 @@ def generate_test_cases(test_points_output: dict) -> dict:
             }
         )
     return {"cases": cases}
+
+
+def generate_test_strategy(project: dict, analysis: dict) -> dict:
+    modules = [module["name"] for module in analysis.get("modules", [])]
+    risks = analysis.get("risks", [])[:3]
+    return {
+        "overview": f"围绕 {', '.join(modules)} 等模块开展功能验证，优先保障主流程可用，再覆盖异常与边界。",
+        "scope": modules or ["核心流程"],
+        "out_of_scope": ["性能压测", "安全渗透测试"],
+        "test_levels": ["冒烟测试", "功能测试", "回归测试"],
+        "test_types": project.get("test_types", ["功能测试"]),
+        "tools_and_env": "测试环境 1 套；用例由 TestPilot 生成，执行以手工 + 接口工具为主。",
+        "risks_and_mitigation": [{"risk": risk, "mitigation": "评审时补充场景与测试数据"} for risk in risks],
+        "entry_criteria": ["需求评审通过", "测试环境可用", "测试数据准备完成"],
+        "exit_criteria": ["P0/P1 用例执行率 100%", "缺陷全部关闭或经评审延期"],
+    }
+
+
+def generate_test_plan(analysis: dict) -> dict:
+    modules = [module["name"] for module in analysis.get("modules", [])]
+    scope = "、".join(modules) or "核心流程"
+    return {
+        "overview": f"针对 {scope} 的测试实施计划，分阶段推进设计与执行。",
+        "phases": [
+            {
+                "name": "测试设计",
+                "tasks": ["拆解测试点", "编写并评审测试用例"],
+                "estimated_days": "2",
+                "deliverables": ["测试用例文档", "测试数据清单"],
+            },
+            {
+                "name": "测试执行",
+                "tasks": ["冒烟执行", "全量执行", "缺陷提交与跟踪"],
+                "estimated_days": "3",
+                "deliverables": ["执行记录", "缺陷清单"],
+            },
+            {
+                "name": "回归与收尾",
+                "tasks": ["缺陷回归", "输出测试报告"],
+                "estimated_days": "1",
+                "deliverables": ["测试报告"],
+            },
+        ],
+        "resource_estimate": "测试工程师 1 人，约 6 人日。",
+        "schedule_summary": "设计 2 天 → 执行 3 天 → 回归收尾 1 天。",
+        "dependencies": ["需求文档冻结", "测试环境就绪"],
+    }
+
+
+def generate_test_design(project: dict, analysis: dict) -> dict:
+    """Rule-engine fallback: build a test-design mind map outline from analysis."""
+    modules = [module["name"] for module in analysis.get("modules", [])] or ["核心流程"]
+    risks = analysis.get("risks", [])
+    root = project.get("name") or analysis.get("system_type") or "测试设计"
+
+    lines = [f"- {root}"]
+    for module in modules:
+        lines.append(f"  - {module}")
+        lines.append(f"    - 正常流程：验证{module}主流程可用且状态流转正确")
+        lines.append(f"    - 异常处理：验证{module}失败返回时提示明确、状态一致")
+        lines.append(f"    - 边界条件：验证{module}边界值、重复提交与空值拦截")
+    if risks:
+        lines.append("  - 风险关注")
+        for risk in risks[:3]:
+            lines.append(f"    - {risk}")
+
+    return {"markdown": "\n".join(lines)}

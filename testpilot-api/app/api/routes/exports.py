@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -12,5 +12,9 @@ store = DatabaseStore()
 
 @router.post("/{project_id}/export")
 def export_outputs_route(project_id: str, payload: ExportRequest, db: Session = Depends(get_db)):
+    if not store.get_project(db, project_id):
+        raise HTTPException(status_code=404, detail="Project not found")
     result = export_outputs(db, project_id, payload.format, payload.targets)
+    if result.get("status") == "unsupported_format":
+        raise HTTPException(status_code=400, detail=f"Unsupported export format: {payload.format}")
     return result

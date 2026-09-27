@@ -1,0 +1,12 @@
+Based on the provided requirement analysis and project configuration, produce a test-design mind map. The output MUST be a valid JSON object with one field:
+
+- "markdown": string - a Markdown nested list (using "- " bullets and 2-space indentation) representing the mind map tree.
+
+Tree structure requirements:
+
+- Root node: the system or feature under test (short phrase).
+- Level 1: functional modules or major test dimensions.
+- Level 2: concrete test scenarios (normal flow, exceptions, boundaries).
+- Level 3 (optional): key verification points or test data hints.
+
+Keep every node SHORT (a phrase, not a sentence). Cover the main flow first, then exceptions, boundaries and state transitions. Do not include code blocks, tables or headings inside "markdown" — only nested bullet lines.

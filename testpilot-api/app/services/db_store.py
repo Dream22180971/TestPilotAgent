@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from sqlalchemy.orm import Session
 
-from app.models import ProjectModel, RequirementModel, OutputModel, DocumentModel
+from app.models import DocumentModel, FollowupModel, OutputModel, ProjectModel, RequirementModel
 
 
 class DatabaseStore:
@@ -56,6 +56,19 @@ class DatabaseStore:
     def get_requirement(self, db: Session, requirement_id: str) -> dict | None:
         record = db.query(RequirementModel).filter(RequirementModel.id == requirement_id).first()
         return record.to_dict() if record else None
+
+    def get_latest_requirement(self, db: Session, project_id: str) -> dict | None:
+        record = (
+            db.query(RequirementModel)
+            .filter(RequirementModel.project_id == project_id)
+            .order_by(RequirementModel.created_at.desc())
+            .first()
+        )
+        return record.to_dict() if record else None
+
+    def list_outputs(self, db: Session, project_id: str) -> list[dict]:
+        records = db.query(OutputModel).filter(OutputModel.project_id == project_id).all()
+        return [r.to_dict() for r in records]
 
     def save_output(self, db: Session, project_id: str, target: str, content: dict) -> dict:
         now = datetime.now(timezone.utc)
@@ -126,3 +139,40 @@ class DatabaseStore:
         if doc:
             db.delete(doc)
             db.commit()
+
+    def create_followup(self, db: Session, project_id: str, target: str, instruction: str) -> dict:
+        record = FollowupModel(
+            id=f"fu_{uuid4().hex[:10]}",
+            project_id=project_id,
+            target=target,
+            instruction=instruction,
+            status="thinking",
+            changes=[],
+        )
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+        return record.to_dict()
+
+    def update_followup(self, db: Session, followup_id: str, **fields) -> dict | None:
+        record = db.query(FollowupModel).filter(FollowupModel.id == followup_id).first()
+        if not record:
+            return None
+        for key, value in fields.items():
+            setattr(record, key, value)
+        db.commit()
+        db.refresh(record)
+        return record.to_dict()
+
+    def get_followup(self, db: Session, followup_id: str) -> dict | None:
+        record = db.query(FollowupModel).filter(FollowupModel.id == followup_id).first()
+        return record.to_dict() if record else None
+
+    def list_followups(self, db: Session, project_id: str) -> list[dict]:
+        records = (
+            db.query(FollowupModel)
+            .filter(FollowupModel.project_id == project_id)
+            .order_by(FollowupModel.created_at.asc())
+            .all()
+        )
+        return [r.to_dict() for r in records]

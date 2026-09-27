@@ -2,12 +2,35 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ModuleInfo(BaseModel):
     name: str
     description: str = ""
+
+
+class RequirementAnalysisOutput(BaseModel):
+    """Every list defaults to empty so a partial LLM answer never breaks the UI."""
+
+    business_goal: str = ""
+    system_type: str = ""
+    roles: list[str] = Field(default_factory=list)
+    modules: list[ModuleInfo] = Field(default_factory=list)
+    core_flows: list[str] = Field(default_factory=list)
+    business_rules: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+    test_focus: list[str] = Field(default_factory=list)
+
+    @field_validator("modules", mode="before")
+    @classmethod
+    def _coerce_modules(cls, value):
+        # Models sometimes answer ["登录", "支付"] instead of [{"name": ...}]
+        if isinstance(value, list):
+            return [{"name": v} if isinstance(v, str) else v for v in value]
+        return value
 
 
 class TestPoint(BaseModel):
@@ -65,24 +88,18 @@ class TestPlanOutput(BaseModel):
     dependencies: list[str] = Field(default_factory=list)
 
 
-class ScriptFile(BaseModel):
-    filename: str
-    language: str
-    code: str
+class TestDesignOutput(BaseModel):
+    """Test-design mind map as an indented Markdown outline."""
 
-
-class TestScriptsOutput(BaseModel):
-    language: str = "Python"
-    framework: str = ""
-    files: list[ScriptFile] = Field(default_factory=list)
-    setup_instructions: str = ""
+    markdown: str = ""
 
 
 # Map of target -> Pydantic model class for validation
 SCHEMA_MAP = {
+    "analysis": RequirementAnalysisOutput,
     "test_strategy": TestStrategyOutput,
     "test_plan": TestPlanOutput,
     "test_points": TestPointsOutput,
     "test_cases": TestCasesOutput,
-    "test_script": TestScriptsOutput,
+    "test_design": TestDesignOutput,
 }

@@ -1,3 +1,5 @@
+import type { RequirementAnalysis } from "@/types/requirement";
+
 export interface TestPointRow {
   id: string;
   module: string;
@@ -45,19 +47,6 @@ export interface TestPlan {
   dependencies: string[];
 }
 
-export interface ScriptFile {
-  filename: string;
-  language: string;
-  code: string;
-}
-
-export interface TestScripts {
-  language: string;
-  framework: string;
-  files: ScriptFile[];
-  setup_instructions: string;
-}
-
 export interface GenerateOutputResponse {
   project_id: string;
   target: string;
@@ -66,12 +55,13 @@ export interface GenerateOutputResponse {
   content: {
     rows?: TestPointRow[];
     cases?: TestCaseRow[];
-    analysis?: Record<string, unknown>;
-    test_points?: Record<string, unknown>;
-    test_cases?: Record<string, unknown>;
+    analysis?: RequirementAnalysis;
+    test_points?: { rows?: TestPointRow[] };
+    test_cases?: { cases?: TestCaseRow[] };
     test_strategy?: TestStrategy;
     test_plan?: TestPlan;
-    test_script?: TestScripts;
+    test_design?: { markdown?: string };
+    markdown?: string;
   };
 }
 
@@ -81,6 +71,8 @@ export interface UploadDocumentResponse {
   filename: string;
   file_format: string;
   text_preview: string;
+  /** 提取的完整文本（text_preview 是前 500 字预览） */
+  text?: string;
   page_count: number;
   status: string;
 }

@@ -1,151 +1,189 @@
+import json
+import time
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import SessionLocal, get_db
 from app.schemas.generation import GenerateRequest
 from app.services.db_store import DatabaseStore
-from app.services.generation_service import build_analysis as rule_build_analysis
-from app.services.generation_service import generate_test_cases, generate_test_points
-from app.services.llm_generation_service import analyze_with_llm, generate_with_llm
+from app.services.document_context import collect_document_context
+from app.services.generation_service import (
+    build_analysis,
+    generate_test_cases,
+    generate_test_design,
+    generate_test_plan,
+    generate_test_points,
+    generate_test_strategy,
+)
+from app.services.llm_client import llm_client
+from app.services.llm_generation_service import generate_with_llm_stream
 
 router = APIRouter()
 store = DatabaseStore()
 
-TARGETS = ["analysis", "test_strategy", "test_plan", "test_points", "test_cases", "test_script"]
+# Pipeline order: every target only depends on targets before it.
+TARGETS = ["analysis", "test_strategy", "test_plan", "test_points", "test_cases", "test_design"]
+
+TARGET_LABELS_ZH = {
+    "analysis": "需求分析", "test_strategy": "测试策略", "test_plan": "测试计划",
+    "test_points": "测试点", "test_cases": "测试用例", "test_design": "测试设计",
+}
+
+
+class PipelineError(Exception):
+    def __init__(self, status_code: int, message: str):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _rule_generate(target: str, project: dict, requirement: dict, basis, doc_context):
+    if target == "analysis":
+        return build_analysis(project, requirement, doc_context)
+    if target == "test_points":
+        return generate_test_points(basis)
+    if target == "test_cases":
+        return generate_test_cases(basis)
+    if target == "test_strategy":
+        return generate_test_strategy(project, basis)
+    if target == "test_plan":
+        return generate_test_plan(basis)
+    if target == "test_design":
+        return generate_test_design(project, basis)
+    raise ValueError(f"Unknown target: {target}")
+
+
+def _run_target(project: dict, requirement: dict, target: str, basis, previous_content, doc_context):
+    """Generator: yield SSE frames while generating one target.
+
+    The `return` value is the generated content, with the rule-engine
+    fallback applied when the LLM is unavailable or fails.
+    """
+    label = TARGET_LABELS_ZH.get(target, target)
+
+    if llm_client.available:
+        yield _sse("status", {"target": target, "stage": "llm", "message": f"AI 正在生成{label}…"})
+        result = None
+        for chunk in generate_with_llm_stream(project, requirement, target, basis, previous_content, doc_context):
+            if "reasoning" in chunk:
+                yield _sse("reasoning", {"target": target, "delta": chunk["reasoning"]})
+            elif "result" in chunk:
+                result = chunk["result"]
+        if result is not None:
+            yield _sse("stage_done", {"target": target, "via": "llm"})
+            return result
+        yield _sse("status", {"target": target, "stage": "fallback", "message": f"AI 生成失败，规则引擎兜底{label}…"})
+    else:
+        yield _sse("status", {"target": target, "stage": "rule", "message": f"规则引擎生成{label}…"})
+
+    content = _rule_generate(target, project, requirement, basis, doc_context)
+    yield _sse("stage_done", {"target": target, "via": "rule"})
+    return content
+
+
+def _pipeline(db: Session, project_id: str, payload: GenerateRequest):
+    """Generator shared by the streaming and plain endpoints.
+
+    Yields SSE frames; its `return` value is {target: content} for every
+    module produced. Missing upstream modules (analysis, test points) are
+    generated on the way instead of feeding None into later stages.
+    """
+    project = store.get_project(db, project_id)
+    if not project:
+        raise PipelineError(404, "Project not found")
+    requirement = store.get_requirement(db, payload.requirement_id)
+    if not requirement or requirement["project_id"] != project_id:
+        raise PipelineError(404, "Requirement not found")
+    if payload.target != "all" and payload.target not in TARGETS:
+        raise PipelineError(400, f"Unsupported target: {payload.target}. Supported: all, {', '.join(TARGETS)}")
+
+    doc_context = collect_document_context(db, project_id, requirement.get("raw_input", ""))
+    targets = TARGETS if payload.target == "all" else [payload.target]
+    yield _sse("status", {"stage": "start", "targets": targets, "message": "任务开始"})
+
+    results: dict = {}
+
+    def stored(target: str):
+        out = store.get_output(db, project_id, target)
+        return out["content"] if out else None
+
+    def produce(target: str, basis, previous):
+        content = yield from _run_target(project, requirement, target, basis, previous, doc_context)
+        store.save_output(db, project_id, target, content)
+        results[target] = content
+        yield _sse("module_done", {"target": target, "content": content})
+        return content
+
+    # "all" re-runs analysis so the pipeline follows the latest requirement text;
+    # a single target reuses the saved analysis when there is one.
+    analysis = None if "analysis" in targets else stored("analysis")
+    if analysis is None:
+        analysis = yield from produce("analysis", None, None)
+
+    for target in targets:
+        if target == "analysis":
+            continue
+        if target == "test_cases":
+            points = results.get("test_points") or (None if payload.regenerate else stored("test_points"))
+            if points is None:
+                points = yield from produce("test_points", analysis, None)
+            basis = points
+        else:
+            basis = analysis
+        yield from produce(target, basis, stored(target))
+
+    return results
 
 
 @router.post("/{project_id}/generate")
 def generate_output(project_id: str, payload: GenerateRequest, db: Session = Depends(get_db)) -> dict:
-    project = store.get_project(db, project_id)
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    requirement = store.get_requirement(db, payload.requirement_id)
-    if not requirement or requirement["project_id"] != project_id:
-        raise HTTPException(status_code=404, detail="Requirement not found")
-
-    target = payload.target
-
-    if target == "all":
-        return _generate_all(project, requirement, db, project_id, payload)
-    elif target not in TARGETS:
-        raise HTTPException(status_code=400, detail=f"Unsupported target: {target}. Supported: {', '.join(TARGETS)}")
-    else:
-        return _generate_single(target, project, requirement, db, project_id, payload)
-
-
-def _generate_single(
-    target: str,
-    project: dict,
-    requirement: dict,
-    db: Session,
-    project_id: str,
-    payload: GenerateRequest,
-) -> dict:
-    # For test_cases we need test_points first
-    if target == "test_cases":
-        points_output = store.get_output(db, project_id, "test_points")
-        if not points_output or payload.regenerate:
-            _generate_single("test_points", project, requirement, db, project_id, payload)
-            points_output = store.get_output(db, project_id, "test_points")
-
-    # Collect document context early — used by both analysis and generation
-    doc_context = _collect_document_context(db, project_id, payload.requirement_id)
-
-    # Get or generate analysis for context
-    analysis_output = store.get_output(db, project_id, "analysis")
-    analysis = analysis_output["content"] if analysis_output else (
-        analyze_with_llm(project, requirement, doc_context) or rule_build_analysis(project, requirement)
-    )
-
-    # Get previous output for context
-    previous = store.get_output(db, project_id, target)
-    previous_content = previous["content"] if previous else None
-
-    # Try LLM first, fall back to rule engine
-    if target == "test_points":
-        content = generate_with_llm(project, requirement, target, analysis, previous_content, doc_context) or generate_test_points(analysis)
-    elif target == "test_cases":
-        points_output = store.get_output(db, project_id, "test_points")
-        pts = points_output["content"] if points_output else {"rows": []}
-        content = generate_with_llm(project, requirement, target, str(pts), previous_content, doc_context) or generate_test_cases(pts)
-    else:
-        content = generate_with_llm(project, requirement, target, str(analysis), previous_content, doc_context) or {"note": f"Rule engine fallback for {target}"}
-
-    record = store.save_output(db, project_id, target, content)
-    return {
-        "project_id": project_id,
-        "target": target,
-        "requirement_id": payload.requirement_id,
-        "status": record["status"],
-        "content": record["content"],
-    }
-
-
-def _generate_all(
-    project: dict,
-    requirement: dict,
-    db: Session,
-    project_id: str,
-    payload: GenerateRequest,
-) -> dict:
-    # Collect document context early
-    doc_context = _collect_document_context(db, project_id, payload.requirement_id)
-
-    # Get or generate analysis
-    analysis_output = store.get_output(db, project_id, "analysis")
-    analysis = analysis_output["content"] if analysis_output else (
-        analyze_with_llm(project, requirement, doc_context) or rule_build_analysis(project, requirement)
-    )
-    store.save_output(db, project_id, "analysis", analysis)
-
-    results = {"analysis": analysis}
-    for t in [t for t in TARGETS if t != "analysis"]:
-        prev = store.get_output(db, project_id, t)
-        prev_content = prev["content"] if prev else None
-
-        if t == "test_points":
-            content = generate_with_llm(project, requirement, t, str(analysis), prev_content, doc_context) or generate_test_points(analysis)
-        elif t == "test_cases":
-            points_output = store.get_output(db, project_id, "test_points")
-            pts = points_output["content"] if points_output else {"rows": []}
-            content = generate_with_llm(project, requirement, t, str(pts), prev_content, doc_context) or generate_test_cases(pts)
-        else:
-            content = generate_with_llm(project, requirement, t, str(analysis), prev_content, doc_context) or {"note": f"Rule engine fallback for {t}"}
-
-        store.save_output(db, project_id, t, content)
-        results[t] = content
+    """Blocking variant of /generate/stream (same pipeline, frames discarded)."""
+    runner = _pipeline(db, project_id, payload)
+    try:
+        while True:
+            next(runner)
+    except StopIteration as stop:
+        results = stop.value
+    except PipelineError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
 
     return {
         "project_id": project_id,
-        "target": "all",
+        "target": payload.target,
         "requirement_id": payload.requirement_id,
         "status": "completed",
-        "content": results,
+        "content": results if payload.target == "all" else results[payload.target],
     }
 
 
-def _collect_document_context(db: Session, project_id: str, requirement_id: str) -> dict | None:
-    """Collect all documents attached to this project that are linked to the given requirement."""
-    docs = store.list_documents(db, project_id)
-    if not docs:
-        return None
+@router.post("/{project_id}/generate/stream")
+def generate_output_stream(project_id: str, payload: GenerateRequest):
+    """SSE: status / reasoning / stage_done / module_done / done / error."""
 
-    # Find documents whose text preview was used as raw_input (i.e. uploaded docs)
-    relevant_texts = []
-    relevant_filenames = []
-    for doc in docs:
-        preview = doc.get("text_preview", "")
-        full_text = doc.get("extracted_text", "")
-        if preview and full_text != preview:
-            relevant_texts.append(f"[File: {doc['filename']}] {full_text}")
-            relevant_filenames.append(doc["filename"])
+    def event_stream():
+        db = SessionLocal()
+        start = time.monotonic()
+        try:
+            results = yield from _pipeline(db, project_id, payload)
+            yield _sse("done", {
+                "project_id": project_id,
+                "target": payload.target,
+                "requirement_id": payload.requirement_id,
+                "status": "completed",
+                "content": results if payload.target == "all" else results.get(payload.target, {}),
+                "elapsed_ms": int((time.monotonic() - start) * 1000),
+            })
+        except Exception as e:
+            yield _sse("error", {"message": str(e)})
+        finally:
+            db.close()
 
-    if not relevant_texts:
-        return None
-
-    return {
-        "has_documents": True,
-        "filenames": relevant_filenames,
-        "combined_text": "\n\n---\n\n".join(relevant_texts),
-    }
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })

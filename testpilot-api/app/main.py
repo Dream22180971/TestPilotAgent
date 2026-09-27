@@ -1,8 +1,25 @@
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load testpilot-api/.env before any service reads os.environ
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.api.routes import analysis, documents, exports, followup, generation, projects, requirements
+from app.api.routes import (
+    analysis,
+    documents,
+    exports,
+    followup,
+    generation,
+    projects,
+    requirements,
+    settings,
+)
 from app.database import create_tables, engine
 
 
@@ -13,11 +30,13 @@ async def lifespan(app: FastAPI):
     engine.dispose()
 
 
-app = FastAPI(title="TestPilot API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="领航 API", version="0.2.0", lifespan=lifespan)
+# Only the local web app may call the API from a browser: the settings routes
+# hold the LLM key, so a wildcard would let any visited page drive them.
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "http://127.0.0.1:3000,http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[o.strip() for o in CORS_ORIGINS.split(",") if o.strip()],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -29,6 +48,7 @@ app.include_router(analysis.router, prefix="/api/projects", tags=["analysis"])
 app.include_router(generation.router, prefix="/api/projects", tags=["generation"])
 app.include_router(followup.router, prefix="/api/projects", tags=["followup"])
 app.include_router(exports.router, prefix="/api/projects", tags=["exports"])
+app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
 
 
 @app.get("/health")

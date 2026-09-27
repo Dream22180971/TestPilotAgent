@@ -1,7 +1,7 @@
 "use client";
 
 import { App as AntdApp } from "antd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useRef, useState } from "react";
 
 import {
   analyzeRequirement,
@@ -496,3 +496,5 @@ export function useWorkspace() {
 }
 
 export type Workspace = ReturnType<typeof useWorkspace>;
+
+export const WorkspaceContext = createContext<Workspace | null>(null);

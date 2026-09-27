@@ -43,8 +43,8 @@ import TaskPanel from "@/components/workspace/TaskPanel";
 import {
   PIPELINE_TARGETS,
   TARGET_LABELS,
-  useWorkspace,
 } from "@/hooks/useWorkspace";
+import { useWorkspaceContext } from "@/components/WorkspaceProvider";
 
 const { TextArea } = Input;
 const { Title, Text, Paragraph } = Typography;
@@ -61,7 +61,7 @@ const TEST_TYPE_OPTIONS = ["功能测试", "接口测试", "UI测试", "性能�
 const STEP_ORDER = ["analysis", ...PIPELINE_TARGETS];
 
 export default function WorkspacePage() {
-  const ws = useWorkspace();
+  const ws = useWorkspaceContext();
   const [activeTab, setActiveTab] = useState("analysis");
   const [exportOpen, setExportOpen] = useState(false);
 

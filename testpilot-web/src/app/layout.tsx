@@ -6,6 +6,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/zh-cn";
 
 import { workbenchTheme } from "@/theme";
+import { WorkspaceProvider } from "@/components/WorkspaceProvider";
 
 export const metadata: Metadata = {
   title: "领航 · AI 测试工作台",
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN">
       <body>
         <ConfigProvider locale={zhCN} theme={workbenchTheme}>
-          <AntdApp>{children}</AntdApp>
+          <AntdApp>
+            <WorkspaceProvider>{children}</WorkspaceProvider>
+          </AntdApp>
         </ConfigProvider>
       </body>
     </html>

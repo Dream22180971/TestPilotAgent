@@ -8,7 +8,7 @@ from app.services.document_parser import parse_document
 router = APIRouter()
 store = DatabaseStore()
 
-ALLOWED_EXTENSIONS = {".txt", ".pdf", ".docx"}
+ALLOWED_EXTENSIONS = {".txt", ".md", ".markdown", ".pdf", ".docx"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 

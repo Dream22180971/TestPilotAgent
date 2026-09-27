@@ -276,7 +276,7 @@ export default function WorkspacePage() {
               <Card title="需求输入" size="small">
                 <Space direction="vertical" size={10} style={{ width: "100%" }}>
                   <Upload.Dragger
-                    accept=".txt,.pdf,.docx"
+                    accept=".txt,.md,.pdf,.docx"
                     showUploadList={false}
                     beforeUpload={(file) => {
                       ws.runUpload(file);
@@ -291,7 +291,7 @@ export default function WorkspacePage() {
                       点击或拖拽上传需求文档
                     </p>
                     <p className="ant-upload-hint" style={{ fontSize: 12 }}>
-                      支持 TXT / PDF / DOCX，上传后自动提取文本
+                      支持 TXT / MD / PDF / DOCX，上传后自动提取文本
                     </p>
                   </Upload.Dragger>
                   <TextArea

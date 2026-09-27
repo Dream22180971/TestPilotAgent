@@ -1,5 +1,12 @@
 :root {
   color-scheme: light;
+  /* 品牌色板：主蓝 + 中性灰阶 */
+  --brand: #1668dc;
+  --brand-strong: #0e42d2;
+  --brand-soft: #e6f0ff;
+  --ink: #0f1c2e;
+  --ink-soft: #51607a;
+  --line: #e6ecf4;
 }
 
 * {
@@ -10,12 +17,116 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f5f7fa;
-  color: #1f2937;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: #eef3fa;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* ---- 全局工作台底纹：雾面渐变 + 细点阵 ---- */
+.workbench-bg {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(64, 150, 255, 0.10), transparent 42%),
+    radial-gradient(circle at 92% 100%, rgba(19, 194, 194, 0.07), transparent 40%),
+    radial-gradient(circle, rgba(100, 140, 190, 0.16) 1px, transparent 1px),
+    linear-gradient(180deg, #f2f6fb 0%, #eef3fa 100%);
+  background-size: auto, auto, 22px 22px, auto;
+}
+
+/* 数字统一等宽，读数更稳 */
+.tabular,
+.ant-statistic-content-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- 卡片层次：白卡 + 细线 + hover 浮起 ---- */
+.ant-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(15, 28, 46, 0.04);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.ant-card.is-hoverable:hover {
+  box-shadow: 0 8px 24px rgba(22, 104, 220, 0.10);
+  transform: translateY(-2px);
+}
+
+.ant-card .ant-card-head {
+  border-bottom-color: var(--line);
+}
+
+/* ---- 主按钮：品牌渐变 ---- */
+.ant-btn-primary:not(.ant-btn-ghost):not(.ant-btn-text) {
+  background: linear-gradient(135deg, var(--brand) 0%, #4096ff 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(22, 104, 220, 0.28);
+}
+
+.ant-btn-primary:not(.ant-btn-ghost):not(.ant-btn-text):hover {
+  background: linear-gradient(135deg, var(--brand-strong) 0%, #2e7bff 100%);
+  box-shadow: 0 4px 14px rgba(22, 104, 220, 0.36);
+  transform: translateY(-1px);
+}
+
+/* ---- 侧边栏菜单选中态 ---- */
+.ant-menu-item-selected {
+  border-radius: 10px;
+}
+
+/* ---- 滚动条 ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(81, 96, 122, 0.28);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(81, 96, 122, 0.45);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---- 思考流面板 ---- */
+.reasoning-stream {
+  font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 流程节点序号圆点 */
+.flow-dot {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), #4096ff);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* 左侧竖条规则卡 */
+.rule-card {
+  border-left: 3px solid var(--brand);
+  background: #f8fbff;
+  padding: 8px 14px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #334155;
+  border-radius: 0 8px 8px 0;
 }

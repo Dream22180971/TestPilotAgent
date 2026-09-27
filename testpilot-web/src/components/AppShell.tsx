@@ -36,7 +36,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     : "/workspace";
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
+    <Layout className="workbench-bg" style={{ minHeight: "100vh" }}>
       <Sider
         width={208}
         collapsedWidth={64}

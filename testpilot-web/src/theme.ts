@@ -1,24 +1,28 @@
 import type { ThemeConfig } from "antd";
 
 /**
- * 工作台统一主题：白底卡片 + 品牌蓝 + 克制的圆角阴影，
- * 参考 Ant Design Pro 中后台范式的默认视觉。
+ * 领航工作台主题：雾面蓝工作台设计语言。
+ * 白卡浮起 + 品牌蓝渐变（globals.css 中实现）+ 12px 卡片圆角 + tabular 数字。
  */
 export const workbenchTheme: ThemeConfig = {
   token: {
-    colorPrimary: "#1677ff",
-    colorInfo: "#1677ff",
+    colorPrimary: "#1668dc",
+    colorInfo: "#1668dc",
     borderRadius: 8,
     fontSize: 14,
-    colorBgLayout: "#f5f7fa",
-    colorTextHeading: "#1f2937",
+    colorBgLayout: "#eef3fa",
+    colorTextHeading: "#0f1c2e",
+    colorText: "#334155",
+    colorLink: "#1668dc",
+    boxShadowSecondary: "0 8px 24px rgba(15, 28, 46, 0.10)",
   },
   components: {
     Layout: {
       headerBg: "#ffffff",
       headerHeight: 56,
       headerPadding: "0 24px",
-      siderBg: "#ffffff",
+      siderBg: "#fbfdff",
+      bodyBg: "#eef3fa",
     },
     Card: {
       headerFontSize: 15,
@@ -27,8 +31,22 @@ export const workbenchTheme: ThemeConfig = {
       marginXS: 4,
     },
     Table: {
-      headerBg: "#fafafa",
+      headerBg: "#f7faff",
       fontSize: 13,
+      headerBorderRadius: 8,
+    },
+    Menu: {
+      itemSelectedBg: "#e6f0ff",
+      itemSelectedColor: "#1668dc",
+      itemBorderRadius: 10,
+      itemMarginInline: 10,
+    },
+    Statistic: {
+      titleFontSize: 12,
+      contentFontSize: 22,
+    },
+    Tag: {
+      borderRadiusSM: 6,
     },
   },
 };

@@ -26,8 +26,16 @@ const columns: ColumnsType<HistoryRow> = [
     title: "系统类型",
     dataIndex: "system_type",
     key: "system_type",
-    width: 120,
-    render: (value: string) => <Tag color="blue">{value}</Tag>,
+    width: 160,
+    render: (value: string) =>
+      String(value)
+        .split(",")
+        .filter(Boolean)
+        .map((v) => (
+          <Tag key={v} color="blue" style={{ marginBottom: 2 }}>
+            {v}
+          </Tag>
+        )),
   },
   {
     title: "测试类型",

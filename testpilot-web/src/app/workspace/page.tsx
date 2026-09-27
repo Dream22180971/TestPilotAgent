@@ -294,10 +294,13 @@ export default function WorkspacePage() {
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>系统类型</Text>
                     <Select
-                      value={ws.systemType}
-                      onChange={ws.setSystemType}
+                      mode="multiple"
+                      value={ws.systemTypes}
+                      onChange={ws.setSystemTypes}
                       options={SYSTEM_TYPES.map((v) => ({ value: v, label: v }))}
                       style={{ width: "100%", marginTop: 2 }}
+                      placeholder="可多选"
+                      maxTagCount="responsive"
                     />
                   </div>
                   <div>

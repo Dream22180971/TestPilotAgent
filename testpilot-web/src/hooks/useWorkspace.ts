@@ -56,7 +56,7 @@ export function useWorkspace() {
   const { message } = AntdApp.useApp();
 
   const [projectName, setProjectName] = useState("");
-  const [systemType, setSystemType] = useState("Web");
+  const [systemTypes, setSystemTypes] = useState<string[]>(["Web"]);
   const [testTypes, setTestTypes] = useState<string[]>(["功能测试"]);
   const [scriptLanguage, setScriptLanguage] = useState("Python");
 
@@ -149,7 +149,7 @@ export function useWorkspace() {
     if (!nextProjectId) {
       const project = await createProject({
         name: projectName.trim() || "未命名项目",
-        system_type: systemType,
+        system_type: systemTypes.join(","),
         test_types: testTypes,
         script_language: scriptLanguage,
         output_language: "中文",
@@ -425,7 +425,7 @@ export function useWorkspace() {
     startNewProject();
     savedTextRef.current = null;
     setProjectName(project.name);
-    setSystemType(project.system_type);
+    setSystemTypes(project.system_type ? String(project.system_type).split(",").map((v) => v.trim()).filter(Boolean) : ["Web"]);
     setTestTypes(project.test_types?.length ? project.test_types : ["功能测试"]);
     setScriptLanguage(project.script_language ?? "Python");
     setProjectId(project.id);
@@ -477,7 +477,7 @@ export function useWorkspace() {
   return {
     // 配置表单
     projectName, setProjectName,
-    systemType, setSystemType,
+    systemTypes, setSystemTypes,
     testTypes, setTestTypes,
     scriptLanguage, setScriptLanguage,
     // 需求输入

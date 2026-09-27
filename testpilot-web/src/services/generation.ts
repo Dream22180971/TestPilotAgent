@@ -1,6 +1,5 @@
-import { request } from "@/services/api";
-import type { GenerateOutputResponse, UploadDocumentResponse } from "@/types/output";
-import type { RequirementAnalysis } from "@/types/requirement";
+import { API_BASE_URL, downloadBlob, errorMessage, request } from "@/services/api";
+import type { DocumentRow, GenerateOutputResponse, UploadDocumentResponse } from "@/types/output";
 
 export interface SaveRequirementPayload {
   raw_input: string;
@@ -22,139 +21,45 @@ export async function saveRequirement(projectId: string, payload: SaveRequiremen
   });
 }
 
-export async function analyzeRequirement(projectId: string, requirementId: string): Promise<RequirementAnalysis> {
-  return request<RequirementAnalysis>(`/api/projects/${projectId}/analyze`, {
-    method: "POST",
-    body: JSON.stringify({ requirement_id: requirementId }),
-  });
-}
-
-export async function generateOutput(projectId: string, requirementId: string, target: string): Promise<GenerateOutputResponse> {
-  return request<GenerateOutputResponse>(`/api/projects/${projectId}/generate`, {
-    method: "POST",
-    body: JSON.stringify({ target, requirement_id: requirementId, regenerate: false }),
-  });
-}
-
 export async function uploadDocument(projectId: string, file: File): Promise<UploadDocumentResponse> {
   const formData = new FormData();
   formData.append("file", file);
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents`, {
+  return request<UploadDocumentResponse>(`/api/projects/${projectId}/documents`, {
     method: "POST",
     body: formData,
-    cache: "no-store",
   });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Upload failed: ${response.status}`);
-  }
-
-  return response.json() as Promise<UploadDocumentResponse>;
 }
 
-export async function listDocuments(projectId: string): Promise<UploadDocumentResponse[]> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `List documents failed: ${response.status}`);
-  }
-
-  return response.json() as Promise<UploadDocumentResponse[]>;
-}
-
-export async function getDocument(projectId: string, documentId: string): Promise<UploadDocumentResponse & { extracted_text?: string }> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents/${documentId}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Get document failed: ${response.status}`);
-  }
-
-  return response.json() as Promise<UploadDocumentResponse & { extracted_text?: string }>;
+/** 后端列表返回的是数据库行（id），统一映射成前端的 document_id */
+export async function listDocuments(projectId: string): Promise<DocumentRow[]> {
+  const rows = await request<Array<DocumentRow & { id?: string }>>(`/api/projects/${projectId}/documents`);
+  return rows.map((row) => ({ ...row, document_id: row.document_id ?? row.id ?? "" }));
 }
 
 export async function deleteDocument(projectId: string, documentId: string): Promise<{ status: string; document_id: string }> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/documents/${documentId}`, {
-    method: "DELETE",
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Delete failed: ${response.status}`);
-  }
-
-  return response.json() as Promise<{ status: string; document_id: string }>;
+  return request(`/api/projects/${projectId}/documents/${documentId}`, { method: "DELETE" });
 }
 
-export async function followup(projectId: string, target: string, instruction: string): Promise<GenerateOutputResponse> {
-  return request<GenerateOutputResponse>(`/api/projects/${projectId}/followup`, {
-    method: "POST",
-    body: JSON.stringify({ target, instruction }),
-  });
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return bytes;
 }
 
 export async function exportOutput(projectId: string, format: string, targets: string[]): Promise<void> {
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-  const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/export`, {
+  const result = await request<{ data: unknown }>(`/api/projects/${projectId}/export`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ format, targets }),
-    cache: "no-store",
   });
+  const base = `linghang-${projectId}`;
 
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Export failed: ${response.status}`);
-  }
-
-  const result = await response.json();
-
-  if (format === "xlsx" || format === "excel") {
-    // Hex-encoded Excel data — convert and download
-    const hex = result.data;
-    const bytes = new Uint8Array(hex.match(/.{1,2}/g)?.map((b: string) => parseInt(b, 16)) || []);
-    const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `linghang-${projectId}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+  if (format === "xlsx") {
+    const type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    downloadBlob(new Blob([hexToBytes(result.data as string)], { type }), `${base}.xlsx`);
   } else if (format === "json") {
-    const dataStr = JSON.stringify(result.data, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `linghang-${projectId}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } else if (format === "markdown" || format === "md") {
-    const blob = new Blob([result.data as string], { type: "text/markdown" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `linghang-${projectId}.md`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+    downloadBlob(new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" }), `${base}.json`);
+  } else {
+    downloadBlob(new Blob([result.data as string], { type: "text/markdown" }), `${base}.md`);
   }
 }
 
@@ -206,20 +111,21 @@ async function* readSse(resp: Response): AsyncGenerator<SseFrame> {
   }
 }
 
-/** Stream a generation task (target: single target or "all"). */
+/** Stream a generation task (target: single target or "all"). Abort via `signal`. */
 export async function streamGenerate(
   projectId: string,
   requirementId: string,
   target: string,
   handlers: StreamHandlers,
+  signal?: AbortSignal,
 ): Promise<void> {
-  const API_BASE_URL_LOCAL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
-  const resp = await fetch(`${API_BASE_URL_LOCAL}/api/projects/${projectId}/generate/stream`, {
+  const resp = await fetch(`${API_BASE_URL}/api/projects/${projectId}/generate/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ target, requirement_id: requirementId, regenerate: false }),
+    signal,
   });
-  if (!resp.ok) throw new Error(`Request failed: ${resp.status}`);
+  if (!resp.ok) throw new Error(await errorMessage(resp, "Request failed"));
 
   for await (const frame of readSse(resp)) {
     const d = frame.data as Record<string, string & string[]>;
@@ -229,4 +135,61 @@ export async function streamGenerate(
     else if (frame.event === "done") handlers.onDone?.(d as never);
     else if (frame.event === "error") handlers.onError?.(String(d.message));
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// Follow-up (revision log): AI answers / proposes, user applies or discards
+// ---------------------------------------------------------------------------
+
+export type FollowupStatus = "thinking" | "answered" | "proposed" | "applied" | "discarded" | "error";
+
+export interface FollowupRecord {
+  id: string;
+  target: string;
+  instruction: string;
+  status: FollowupStatus;
+  reply: string;
+  changes: string[];
+  /** 修改后的完整模块内容；纯提问时为 null */
+  revised: Record<string, unknown> | null;
+  detail: string;
+  created_at: string | null;
+  /** 仅前端：流式思考过程 */
+  reasoning?: string;
+}
+
+export async function streamFollowup(
+  projectId: string,
+  target: string,
+  instruction: string,
+  handlers: {
+    onRecord?: (record: FollowupRecord) => void;
+    onReasoning?: (delta: string) => void;
+    onError?: (message: string) => void;
+  },
+  signal?: AbortSignal,
+): Promise<void> {
+  const resp = await fetch(`${API_BASE_URL}/api/projects/${projectId}/followup/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target, instruction }),
+    signal,
+  });
+  if (!resp.ok) throw new Error(await errorMessage(resp, "Request failed"));
+
+  for await (const frame of readSse(resp)) {
+    const d = frame.data as Record<string, unknown>;
+    if (frame.event === "record") handlers.onRecord?.(d as unknown as FollowupRecord);
+    else if (frame.event === "reasoning") handlers.onReasoning?.(String(d.delta ?? ""));
+    else if (frame.event === "error") handlers.onError?.(String(d.message));
+  }
+}
+
+export async function applyFollowup(projectId: string, followupId: string): Promise<{ record: FollowupRecord; content: unknown }> {
+  return request(`/api/projects/${projectId}/followups/${followupId}/apply`, { method: "POST" });
+}
+
+export async function discardFollowup(projectId: string, followupId: string): Promise<{ record: FollowupRecord }> {
+  return request(`/api/projects/${projectId}/followups/${followupId}/discard`, { method: "POST" });
 }

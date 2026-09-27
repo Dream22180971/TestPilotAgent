@@ -1,18 +1,12 @@
 "use client";
 
-import { Button, Layout, Menu, Tooltip, Typography } from "antd";
-import {
-  ExperimentOutlined,
-  HistoryOutlined,
-  GithubOutlined,
-  SettingOutlined,
-} from "@ant-design/icons";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
+import { Layout, Menu, Tooltip, Typography } from "antd";
+import { ExperimentOutlined, GithubOutlined, HistoryOutlined, SettingOutlined } from "@ant-design/icons";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
+import { getLlmSettings, type LlmSettings } from "@/services/settings";
 import ModelSettingsModal from "./ModelSettingsModal";
-import { useState } from "react";
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -22,123 +16,163 @@ const NAV_ITEMS = [
   { key: "/history", icon: <HistoryOutlined />, label: "项目历史" },
 ];
 
+const REPO_URL = "https://github.com/Dream22180971/TestPilotAgent";
+
+/** 领航标志：罗盘指针 */
+function BrandMark() {
+  return (
+    <div
+      style={{
+        width: 34,
+        height: 34,
+        borderRadius: 10,
+        background: "linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 4px 12px rgba(13, 148, 136, 0.3)",
+        flexShrink: 0,
+      }}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.55)" strokeWidth="1.6" />
+        <path d="M15.8 8.2 13.4 13.4 8.2 15.8 10.6 10.6Z" fill="#fff" />
+        <circle cx="12" cy="12" r="1.3" fill="#0F766E" />
+      </svg>
+    </div>
+  );
+}
+
 /**
- * 全局工作台壳：左侧固定导航 + 内容区。
- * 参考 Ant Design Pro 的 ProLayout 布局范式。
+ * 全局工作台壳：左侧导航（品牌 / 菜单 / 模型状态）+ 内容区。
  */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [navCollapsed, setNavCollapsed] = useState(false);
-  const selectedKey = NAV_ITEMS.some((item) => item.key === pathname)
-    ? pathname
-    : "/workspace";
+  const [llm, setLlm] = useState<LlmSettings | null>(null);
+  const [apiDown, setApiDown] = useState(false);
+
+  const selectedKey = NAV_ITEMS.some((item) => item.key === pathname) ? pathname : "/workspace";
+
+  const loadLlm = useCallback(async () => {
+    try {
+      setLlm(await getLlmSettings());
+      setApiDown(false);
+    } catch {
+      setApiDown(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLlm();
+  }, [loadLlm]);
+
+  const statusTitle = apiDown ? "API 未连接" : llm?.configured ? "AI 模式" : "规则引擎";
+  const statusDetail = apiDown ? "请先运行 start-api.ps1" : llm?.configured ? llm.model : "点此配置模型";
 
   return (
     <Layout className="workbench-bg" style={{ height: "100vh", overflow: "hidden" }}>
       <Sider
-        width={208}
-        collapsedWidth={64}
+        width={216}
+        collapsedWidth={68}
         collapsible
         breakpoint="lg"
         collapsed={navCollapsed}
         onCollapse={setNavCollapsed}
         theme="light"
-        style={{
-          borderRight: "1px solid #f0f0f0",
-          height: "100%",
-          zIndex: 20,
-        }}
+        className="app-nav"
+        style={{ height: "100%", zIndex: 20 }}
       >
-      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px", justifyContent: navCollapsed ? "center" : "flex-start" }}>
+        <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #0D9488, #5EEAD4)",
-              color: "#fff",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 700,
-              fontSize: 15,
+              gap: 10,
+              padding: navCollapsed ? "18px 0" : "18px 18px",
+              justifyContent: navCollapsed ? "center" : "flex-start",
             }}
           >
-            领
-          </div>
-          {!navCollapsed && (
-            <div>
-              <Text strong style={{ display: "block", lineHeight: 1.2, fontSize: 15 }}>
-                领航
-              </Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>
-                AI 测试工作台
-              </Text>
-            </div>
-          )}
-        </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={NAV_ITEMS}
-          onClick={({ key }) => router.push(key)}
-          style={{ borderInlineEnd: "none" }}
-        />
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            opacity: navCollapsed ? 0 : 0.12,
-            transition: "opacity 0.2s ease",
-          }}
-        >
-          <ExperimentOutlined style={{ fontSize: 96, color: "#0D9488" }} />
-        </div>
-        <div style={{ padding: "12px 0 16px", textAlign: navCollapsed ? "center" : "left", flexShrink: 0 }}>
-          <div style={{ marginBottom: 10 }}>
-            {navCollapsed ? (
-              <Tooltip title="模型配置" placement="right">
-                <Button type="text" size="small" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)} />
-              </Tooltip>
-            ) : (
-              <Button
-                type="text"
-                size="small"
-                icon={<SettingOutlined />}
-                onClick={() => setSettingsOpen(true)}
-                style={{ padding: "0 0", color: "rgba(0,0,0,0.65)", fontSize: 13 }}
-              >
-                模型配置
-              </Button>
+            <BrandMark />
+            {!navCollapsed && (
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, lineHeight: 1.2, color: "var(--ink)", letterSpacing: 1 }}>
+                  领航
+                </div>
+                <Text type="secondary" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                  AI 测试工作台
+                </Text>
+              </div>
             )}
           </div>
-          {navCollapsed ? (
-            <Tooltip title="GitHub 仓库" placement="right">
-              <Link href="https://github.com/Dream22180971/TestPilotAgent" target="_blank" style={{ color: "rgba(0,0,0,0.45)", fontSize: 14 }}>
-                <GithubOutlined />
-              </Link>
-            </Tooltip>
-          ) : (
-            <Link
-              href="https://github.com/Dream22180971/TestPilotAgent"
+
+          <Menu
+            mode="inline"
+            selectedKeys={[selectedKey]}
+            items={NAV_ITEMS}
+            onClick={({ key }) => router.push(key)}
+            style={{ borderInlineEnd: "none" }}
+          />
+
+          <div style={{ flex: 1 }} />
+
+          <div style={{ padding: navCollapsed ? "0 0 12px" : "0 12px 12px", flexShrink: 0 }}>
+            {navCollapsed ? (
+              <Tooltip title={`${statusTitle} · ${statusDetail}`} placement="right">
+                <button
+                  type="button"
+                  className="model-status"
+                  onClick={() => setSettingsOpen(true)}
+                  style={{ justifyContent: "center", border: "none", background: "transparent" }}
+                  aria-label="模型配置"
+                >
+                  <SettingOutlined style={{ color: "var(--ink-3)" }} />
+                </button>
+              </Tooltip>
+            ) : (
+              <button type="button" className="model-status" onClick={() => setSettingsOpen(true)}>
+                <span className={`status-dot${llm?.configured && !apiDown ? "" : " is-off"}`} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{statusTitle}</span>
+                  <Text type="secondary" ellipsis style={{ display: "block", fontSize: 11.5 }}>
+                    {statusDetail}
+                  </Text>
+                </span>
+                <SettingOutlined style={{ color: "var(--ink-4)" }} />
+              </button>
+            )}
+            <a
+              href={REPO_URL}
               target="_blank"
-              style={{ color: "rgba(0,0,0,0.45)", fontSize: 12 }}
+              rel="noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: navCollapsed ? "center" : "flex-start",
+                gap: 6,
+                marginTop: 10,
+                padding: navCollapsed ? 0 : "0 4px",
+                color: "var(--ink-4)",
+                fontSize: 12,
+              }}
             >
-              <GithubOutlined style={{ marginRight: 6 }} />
-              GitHub 仓库
-            </Link>
-          )}
+              <GithubOutlined />
+              {!navCollapsed && "GitHub 仓库"}
+            </a>
+          </div>
         </div>
-      </div>
       </Sider>
-      <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <Layout>
-        <Content style={{ padding: 24, height: "100%", overflow: "hidden" }}>{children}</Content>
+      <ModelSettingsModal
+        open={settingsOpen}
+        onClose={() => {
+          setSettingsOpen(false);
+          loadLlm();
+        }}
+      />
+      <Layout style={{ background: "transparent" }}>
+        <Content style={{ padding: "20px 24px", height: "100%", overflow: "hidden" }}>{children}</Content>
       </Layout>
     </Layout>
   );

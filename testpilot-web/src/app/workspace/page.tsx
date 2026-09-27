@@ -1,58 +1,51 @@
 "use client";
 
 import {
+  Badge,
   Button,
   Card,
-  Col,
   Collapse,
-  Layout,
   Input,
+  Layout,
   Modal,
   Popconfirm,
-  Row,
   Select,
+  Skeleton,
   Space,
-  Statistic,
-  Steps,
   Tabs,
-  Tooltip,
   Tag,
+  Tooltip,
   Typography,
   Upload,
 } from "antd";
 import {
   BulbOutlined,
   CloudUploadOutlined,
+  DeleteOutlined,
   DoubleLeftOutlined,
   DoubleRightOutlined,
   EditOutlined,
   ExpandOutlined,
   ExportOutlined,
   FileTextOutlined,
+  FolderOpenOutlined,
+  LoadingOutlined,
   PlayCircleOutlined,
   PlusOutlined,
-  RocketOutlined,
-  ThunderboltOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 import AppShell from "@/components/AppShell";
-import ExportModal from "@/components/workspace/ExportModal";
-import FollowupPanel, { type FollowupRecord } from "@/components/workspace/FollowupPanel";
-import {
-  AnalysisView,
-  PlanView,
-  StrategyView,
-  UnknownsView,
-} from "@/components/workspace/ModuleViews";
-import { TestCasesTable, TestPointsTable } from "@/components/workspace/AssetTables";
-import TaskPanel from "@/components/workspace/TaskPanel";
-import {
-  PIPELINE_TARGETS,
-  TARGET_LABELS,
-} from "@/hooks/useWorkspace";
 import { useWorkspaceContext } from "@/components/WorkspaceProvider";
+import { TestCasesTable, TestPointsTable } from "@/components/workspace/AssetTables";
+import ExportModal from "@/components/workspace/ExportModal";
+import FollowupPanel from "@/components/workspace/FollowupPanel";
+import { AnalysisView, PlanView, StrategyView, UnknownsView } from "@/components/workspace/ModuleViews";
+import PipelineBoard from "@/components/workspace/PipelineBoard";
+import TaskPanel from "@/components/workspace/TaskPanel";
+import { STEP_ORDER, TARGET_LABELS } from "@/hooks/useWorkspace";
 
 const { TextArea } = Input;
 const { Sider, Content } = Layout;
@@ -67,7 +60,11 @@ const MindmapView = dynamic(() => import("@/components/workspace/MindmapView"), 
 const SYSTEM_TYPES = ["Web", "App", "API", "小程序", "后台系统"];
 const TEST_TYPE_OPTIONS = ["功能测试", "接口测试", "UI测试", "性能测试", "安全测试"];
 
-const STEP_ORDER = ["analysis", ...PIPELINE_TARGETS];
+const FieldLabel = ({ children }: { children: React.ReactNode }) => (
+  <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+    {children}
+  </Text>
+);
 
 export default function WorkspacePage() {
   const ws = useWorkspaceContext();
@@ -76,67 +73,81 @@ export default function WorkspacePage() {
   const [fullscreenTab, setFullscreenTab] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
 
-  // 从历史页打开项目（sessionStorage 传递，避免 SSR 查询参数问题）。
-  // 注意：项目列表异步加载，找到目标后才清除标记，否则列表未就绪时打开会丢失。
+  // 生成中自动切到正在生成的模块，结果一出来就能看到
   useEffect(() => {
-    const openId = sessionStorage.getItem("testpilot:openProjectId");
-    if (!openId) return;
-    if (ws.projects.length === 0) return; // 列表未加载完，等待下次触发
-    const target = ws.projects.find((p) => p.id === openId);
-    if (target) {
-      sessionStorage.removeItem("testpilot:openProjectId");
-      ws.openProject(target);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ws.projects]);
+    if (ws.task?.active && ws.task.current) setActiveTab(ws.task.current);
+  }, [ws.task?.active, ws.task?.current]);
 
-  const stepStatus = (target: string) => {
-    const status = ws.moduleStatus(target);
-    return status === "done" ? "finish" : status === "busy" ? "process" : "wait";
+  const countOf = (target: string): number | null => {
+    switch (target) {
+      case "analysis":
+        return ws.analysis ? ws.analysis.modules.length : null;
+      case "test_points":
+        return ws.testPoints.length;
+      case "test_cases":
+        return ws.testCases.length;
+      case "test_plan":
+        return ws.testPlan ? ws.testPlan.phases.length : null;
+      default:
+        return null;
+    }
   };
 
-  const moduleHeader = (target: string, fullscreen: boolean) => {
-    const rounds = ws.followups[target]?.filter((r) => r.status === "done").length ?? 0;
-    const runningAll = ws.isBusy("gen:all");
+  const moduleToolbar = (target: string, fullscreen: boolean) => {
+    const rounds = ws.followups[target]?.filter((r) => r.status === "applied").length ?? 0;
     const status = ws.moduleStatus(target);
+    const done = ws.hasContent(target);
+    const busy = status === "busy" || status === "queued";
     return (
-      <Space style={{ marginBottom: 16 }} wrap>
-        {target === "analysis" ? (
-          <Button
-            type="primary"
-            loading={ws.isBusy("analyze") || runningAll}
-            disabled={runningAll}
-            onClick={ws.runAnalyze}
-          >
-            {ws.analysis ? "重新分析" : "分析需求"}
-          </Button>
-        ) : (
-          <Button
-            type="primary"
-            icon={<PlayCircleOutlined />}
-            loading={ws.isBusy(`gen:${target}`) || runningAll}
-            disabled={runningAll}
-            onClick={() => ws.runGenerate(target)}
-          >
-            {status === "done" ? "重新生成" : "生成"}
+      <div className="module-toolbar">
+        <Space size={8} wrap>
+          <Tooltip title={ws.taskRunning && !busy ? "有生成任务在进行" : undefined}>
+            <Button
+              type="primary"
+              icon={done ? <ReloadOutlined /> : <PlayCircleOutlined />}
+              loading={busy}
+              disabled={ws.taskRunning && !busy}
+              onClick={() => ws.runGenerate(target)}
+            >
+              {target === "analysis" ? (done ? "重新分析" : "分析需求") : done ? "重新生成" : `生成${TARGET_LABELS[target]}`}
+            </Button>
+          </Tooltip>
+          {status === "busy" && <Tag color="processing">生成中</Tag>}
+          {status === "queued" && <Tag>排队中</Tag>}
+          {status === "done" && (
+            <Tag color="success" bordered={false}>
+              {target === "analysis" ? "已分析" : "已生成"}
+            </Tag>
+          )}
+          {rounds > 0 && (
+            <Tag color="cyan" bordered={false} icon={<EditOutlined />}>
+              已修订 {rounds} 轮
+            </Tag>
+          )}
+        </Space>
+        {!fullscreen && done && (
+          <Button type="text" icon={<ExpandOutlined />} onClick={() => setFullscreenTab(target)} style={{ color: "var(--ink-3)" }}>
+            全屏
           </Button>
         )}
-        {status === "done" && <Tag color="success">{target === "analysis" ? "已分析" : "已生成"}</Tag>}
-        {rounds > 0 && (
-          <Tag color="blue" icon={<EditOutlined />}>
-            已修订 {rounds} 轮
-          </Tag>
-        )}
-        {!fullscreen && (
-          <Button icon={<ExpandOutlined />} onClick={() => setFullscreenTab(target)}>
-            全屏查看
-          </Button>
-        )}
-      </Space>
+      </div>
     );
   };
 
   const moduleBody = (target: string) => {
+    const status = ws.moduleStatus(target);
+    if (!ws.hasContent(target) && (status === "busy" || status === "queued")) {
+      return (
+        <div style={{ padding: "8px 4px" }}>
+          <Text type="secondary" style={{ display: "block", marginBottom: 16, fontSize: 13 }}>
+            {status === "busy"
+              ? `AI 正在生成${TARGET_LABELS[target]}，完成后自动显示在这里…`
+              : `排队中，前序模块完成后开始生成${TARGET_LABELS[target]}。`}
+          </Text>
+          <Skeleton active={status === "busy"} paragraph={{ rows: 6 }} />
+        </div>
+      );
+    }
     switch (target) {
       case "analysis":
         return <AnalysisView analysis={ws.analysis} />;
@@ -156,96 +167,102 @@ export default function WorkspacePage() {
   };
 
   const followupFor = (target: string) => {
-    const disabledMap: Record<string, boolean> = {
-      test_strategy: !ws.testStrategy,
-      test_plan: !ws.testPlan,
-      test_points: ws.testPoints.length === 0,
-      test_cases: ws.testCases.length === 0,
-      test_design: !ws.testDesign,
-    };
-    if (!(target in disabledMap)) return null;
+    if (target === "analysis") return null;
     return (
       <FollowupPanel
         targetLabel={TARGET_LABELS[target]}
-        records={(ws.followups[target] ?? []) as FollowupRecord[]}
+        records={ws.followups[target] ?? []}
         loading={ws.isBusy(`follow:${target}`)}
-        disabled={disabledMap[target]}
+        disabled={!ws.hasContent(target) || ws.taskRunning}
+        isApplying={(id) => ws.isBusy(`apply:${id}`)}
         onSubmit={(text) => ws.runFollowup(target, text)}
+        onApply={ws.applyFollowupRecord}
+        onDiscard={ws.discardFollowupRecord}
       />
     );
   };
 
-  const tabItems = ["analysis", ...PIPELINE_TARGETS].map((target) => ({
-    key: target,
-    label: TARGET_LABELS[target],
-    children: (
-      <div>
-        {moduleHeader(target, false)}
-        {moduleBody(target)}
-        {followupFor(target)}
-      </div>
-    ),
-  })).concat([
-    {
-      key: "unknowns",
-      label: "待确认项",
-      children: (
-        <div>
-          <Space style={{ marginBottom: 16 }} wrap>
-            <Button icon={<ExpandOutlined />} onClick={() => setFullscreenTab("unknowns")}>
-              全屏查看
-            </Button>
-          </Space>
-          <UnknownsView analysis={ws.analysis} />
-        </div>
-      ),
-    },
-  ]);
+  const modulePane = (target: string, fullscreen: boolean) => (
+    <div>
+      {moduleToolbar(target, fullscreen)}
+      {moduleBody(target)}
+      {followupFor(target)}
+    </div>
+  );
 
-  const fullscreenTabBody = (target: string) => {
-    if (target === "unknowns") return <UnknownsView analysis={ws.analysis} />;
+  const tabLabel = (target: string) => {
+    const status = ws.moduleStatus(target);
     return (
-      <div>
-        {moduleHeader(target, true)}
-        {moduleBody(target)}
-        {followupFor(target)}
-      </div>
+      <span>
+        {TARGET_LABELS[target]}
+        {status === "done" && <span className="tab-dot" />}
+        {status === "busy" && <span className="tab-dot is-busy" />}
+      </span>
     );
   };
 
+  const unknownCount = ws.analysis?.unknowns.length ?? 0;
+  const tabItems = [
+    ...STEP_ORDER.map((target) => ({ key: target, label: tabLabel(target), children: modulePane(target, false) })),
+    {
+      key: "unknowns",
+      label: (
+        <span>
+          待确认项
+          {unknownCount > 0 && <Badge count={unknownCount} size="small" color="#D97706" style={{ marginLeft: 6 }} />}
+        </span>
+      ),
+      children: <UnknownsView analysis={ws.analysis} />,
+    },
+  ];
+
+  const contextFilled = [ws.businessFlow, ws.rolesText, ws.nonFunctionalText].filter((v) => v.trim()).length;
+
   return (
     <AppShell>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, height: "100%" }}>
         {/* 页头 */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
-          <div>
-            <Title level={4} style={{ margin: 0 }}>
-              测试工作台
-            </Title>
-            <Text type="secondary">
-              上传或粘贴需求，AI 帮你生成测试策略、测试点、用例与脚本，支持追问调整和一键导出。
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexShrink: 0 }}>
+          <div style={{ minWidth: 0 }}>
+            <Space size={10} align="center">
+              <Title level={3} className="page-title">
+                测试工作台
+              </Title>
+              {ws.projectId && (
+                <Tag icon={<FolderOpenOutlined />} color="cyan" bordered={false} style={{ fontSize: 13, padding: "2px 10px" }}>
+                  {ws.projectName.trim() || "未命名项目"}
+                </Tag>
+              )}
+            </Space>
+            <Text type="secondary" style={{ display: "block", fontSize: 13, marginTop: 2 }}>
+              粘贴或上传需求，AI 生成测试策略、计划、测试点、用例与测试设计导图，支持追问修订与一键导出。
             </Text>
           </div>
           <Space>
-            {ws.projectName.trim() && (
-              <Tag color="blue" style={{ marginTop: 6 }}>
-                {ws.projectName}
-              </Tag>
-            )}
-            <Button
-              icon={<PlusOutlined />}
-              onClick={() => {
+            <Popconfirm
+              title="开始新项目？"
+              description="当前页面内容会清空，已生成的结果仍可在「项目历史」中找回。"
+              okText="新建"
+              cancelText="取消"
+              disabled={!ws.requirementText.trim() && !ws.projectId}
+              onConfirm={() => {
                 ws.startNewProject();
                 setActiveTab("analysis");
               }}
             >
-              新建项目
-            </Button>
-            <Button
-              type="primary"
-              icon={<ExportOutlined />}
-              onClick={() => setExportOpen(true)}
-            >
+              <Button
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  if (!ws.requirementText.trim() && !ws.projectId) {
+                    ws.startNewProject();
+                    setActiveTab("analysis");
+                  }
+                }}
+              >
+                新建项目
+              </Button>
+            </Popconfirm>
+            <Button type="primary" icon={<ExportOutlined />} onClick={() => setExportOpen(true)}>
               导出
             </Button>
           </Space>
@@ -254,194 +271,176 @@ export default function WorkspacePage() {
         <Layout style={{ background: "transparent", flex: 1, minHeight: 0 }}>
           {/* 左侧输入面板：可折叠 */}
           <Sider
-            width={400}
-            collapsedWidth={64}
+            width={380}
+            collapsedWidth={56}
             collapsed={siderCollapsed}
             theme="light"
             trigger={null}
-            style={{
-              background: "transparent",
-              borderRight: "1px solid #eef1f5",
-              paddingRight: siderCollapsed ? 0 : 8,
-              overflow: "hidden",
-            }}
+            style={{ background: "transparent", overflow: "hidden" }}
           >
             <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
               {siderCollapsed ? (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, paddingTop: 12 }}>
-                  <Tooltip title="项目设置 / 需求输入（点击展开）" placement="right">
-                    <Button type="text" icon={<CloudUploadOutlined />} onClick={() => setSiderCollapsed(false)} />
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, paddingTop: 8 }}>
+                  <Tooltip title="展开需求输入" placement="right">
+                    <Button shape="circle" icon={<FileTextOutlined />} onClick={() => setSiderCollapsed(false)} />
                   </Tooltip>
-                  <Tooltip title={`测试点 ${ws.testPoints.length} · 用例 ${ws.testCases.length}`} placement="right">
-                    <div style={{ fontSize: 11, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
-                      <div style={{ fontWeight: 700, color: "#0D9488", fontSize: 14 }}>{ws.testPoints.length}</div>
-                      测试点
-                      <div style={{ fontWeight: 700, color: "#0D9488", fontSize: 14, marginTop: 8 }}>{ws.testCases.length}</div>
-                      测试用例
-                    </div>
-                  </Tooltip>
+                  <div className="tabular" style={{ fontSize: 11, color: "var(--ink-3)", textAlign: "center", lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700, color: "var(--brand)", fontSize: 15 }}>{ws.testPoints.length}</div>
+                    测试点
+                    <div style={{ fontWeight: 700, color: "var(--brand)", fontSize: 15, marginTop: 10 }}>{ws.testCases.length}</div>
+                    用例
+                  </div>
                 </div>
               ) : (
-                <div style={{ flex: 1, overflowY: "auto", paddingRight: 8, display: "flex", flexDirection: "column" }}>
-                  <Space direction="vertical" size={16} style={{ width: "100%", flex: 1 }}>
-                    <Card title="项目设置" size="small">
-                <Space direction="vertical" size={10} style={{ width: "100%" }}>
-                  <Input
-                    value={ws.projectName}
-                    onChange={(e) => ws.setProjectName(e.target.value)}
-                    placeholder="项目名称，例如：电商下单测试"
-                  />
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>系统类型</Text>
-                    <Select
-                      mode="multiple"
-                      value={ws.systemTypes}
-                      onChange={ws.setSystemTypes}
-                      options={SYSTEM_TYPES.map((v) => ({ value: v, label: v }))}
-                      style={{ width: "100%", marginTop: 2 }}
-                      placeholder="可多选"
-                      maxTagCount="responsive"
-                    />
-                  </div>
-                  <div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>测试类型</Text>
-                    <Select
-                      mode="multiple"
-                      value={ws.testTypes}
-                      onChange={ws.setTestTypes}
-                      options={TEST_TYPE_OPTIONS.map((v) => ({ value: v, label: v }))}
-                      style={{ width: "100%", marginTop: 2 }}
-                      placeholder="测试类型"
-                    />
-                  </div>
-                </Space>
-              </Card>
-
-              <Card title="需求输入" size="small">
-                <Space direction="vertical" size={10} style={{ width: "100%" }}>
-                  <Upload.Dragger
-                    accept=".txt,.md,.pdf,.docx"
-                    showUploadList={false}
-                    beforeUpload={(file) => {
-                      ws.runUpload(file);
-                      return false;
-                    }}
-                    style={{ background: "#fafafa" }}
-                  >
-                    <p className="ant-upload-drag-icon">
-                      <CloudUploadOutlined style={{ color: "#0D9488" }} />
-                    </p>
-                    <p className="ant-upload-text" style={{ fontSize: 13 }}>
-                      点击或拖拽上传需求文档
-                    </p>
-                    <p className="ant-upload-hint" style={{ fontSize: 12 }}>
-                      支持 TXT / MD / PDF / DOCX，上传后自动提取文本
-                    </p>
-                  </Upload.Dragger>
-                  <TextArea
-                    rows={8}
-                    autoSize={{ minRows: 8, maxRows: 24 }}
-                    value={ws.requirementText}
-                    onChange={(e) => ws.setRequirementText(e.target.value)}
-                    placeholder="或直接粘贴需求描述…"
-                  />
-                  <Collapse
-                    ghost
-                    size="small"
-                    items={[
-                      {
-                        key: "context",
-                        label: <Text type="secondary">补充上下文（可选）</Text>,
-                        children: (
-                          <Space direction="vertical" size={8} style={{ width: "100%" }}>
-                            <Input
-                              value={ws.businessFlow}
-                              onChange={(e) => ws.setBusinessFlow(e.target.value)}
-                              placeholder="核心业务流程，如：登录-浏览商品-下单-支付"
-                            />
-                            <Input
-                              value={ws.rolesText}
-                              onChange={(e) => ws.setRolesText(e.target.value)}
-                              placeholder="用户角色，逗号分隔"
-                            />
-                            <Input
-                              value={ws.nonFunctionalText}
-                              onChange={(e) => ws.setNonFunctionalText(e.target.value)}
-                              placeholder="非功能要求，逗号分隔"
-                            />
-                          </Space>
-                        ),
-                      },
-                    ]}
-                  />
-                </Space>
-              </Card>
-
-              <div style={{ marginTop: "auto" }}>
-                <Card
-                  size="small"
-                  style={{ background: "linear-gradient(135deg, #CCFBF1 0%, #F0FDFA 100%)", border: "1px solid #99F6E4" }}
-                  title={
-                    <Space>
-                      <BulbOutlined style={{ color: "#fa8c16" }} />
-                      小贴士
+                <div style={{ flex: 1, overflowY: "auto", paddingRight: 12, display: "flex", flexDirection: "column", gap: 14 }}>
+                  <Card title="项目设置" size="small">
+                    <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                      <div>
+                        <FieldLabel>项目名称</FieldLabel>
+                        <Input
+                          value={ws.projectName}
+                          onChange={(e) => ws.setProjectName(e.target.value)}
+                          placeholder="例如：电商下单 V2.3"
+                          maxLength={60}
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>系统类型</FieldLabel>
+                        <Select
+                          mode="multiple"
+                          value={ws.systemTypes}
+                          onChange={ws.setSystemTypes}
+                          options={SYSTEM_TYPES.map((v) => ({ value: v, label: v }))}
+                          style={{ width: "100%" }}
+                          placeholder="可多选"
+                          maxTagCount="responsive"
+                        />
+                      </div>
+                      <div>
+                        <FieldLabel>测试类型</FieldLabel>
+                        <Select
+                          mode="multiple"
+                          value={ws.testTypes}
+                          onChange={ws.setTestTypes}
+                          options={TEST_TYPE_OPTIONS.map((v) => ({ value: v, label: v }))}
+                          style={{ width: "100%" }}
+                          placeholder="可多选"
+                          maxTagCount="responsive"
+                        />
+                      </div>
                     </Space>
-                  }
-                >
-                  <div style={{ fontSize: 12, lineHeight: 1.9, color: "#475569" }}>
-                    · 需求越具体，AI 拆解越精准；补充上下文可提升覆盖度
-                    <br />· 生成后可在各模块底部追问修订，每次修订都有记录
-                    <br />· 全部完成后用「导出」下载 Markdown / Excel 测试资产
-                  </div>
-                </Card>
-              </div>
-              {ws.projectId && (
-                <Card title="需求文档" size="small">
-                  {ws.documents.length === 0 ? (
-                    <Paragraph type="secondary" style={{ textAlign: "center", margin: "8px 0" }}>
-                      <FileTextOutlined style={{ marginRight: 6 }} />
-                      暂无上传文档
-                    </Paragraph>
-                  ) : (
-                    ws.documents.map((doc) => (
-                      <div
-                        key={doc.document_id}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "8px 0",
-                          borderBottom: "1px solid #f5f5f5",
+                  </Card>
+
+                  <Card
+                    title="需求输入"
+                    size="small"
+                    extra={
+                      ws.requirementText ? (
+                        <Space size={4}>
+                          <Text type="secondary" className="tabular" style={{ fontSize: 12 }}>
+                            {ws.requirementText.length.toLocaleString()} 字
+                          </Text>
+                          <Popconfirm title="清空需求正文？" okText="清空" cancelText="取消" onConfirm={() => ws.setRequirementText("")}>
+                            <Button type="text" size="small" icon={<DeleteOutlined />} aria-label="清空需求" style={{ color: "var(--ink-4)" }} />
+                          </Popconfirm>
+                        </Space>
+                      ) : null
+                    }
+                  >
+                    <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                      <Upload.Dragger
+                        className="upload-compact"
+                        accept=".txt,.md,.markdown,.pdf,.docx"
+                        showUploadList={false}
+                        disabled={ws.uploading}
+                        beforeUpload={(file) => {
+                          ws.runUpload(file);
+                          return false;
                         }}
                       >
-                        <div style={{ minWidth: 0 }}>
-                          <Text strong ellipsis style={{ maxWidth: 200 }}>
-                            {doc.filename}
-                          </Text>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                          <span className="icon-tile">
+                            {ws.uploading ? <LoadingOutlined /> : <CloudUploadOutlined />}
+                          </span>
                           <div>
-                            <Tag style={{ fontSize: 11 }}>{doc.file_format.toUpperCase()}</Tag>
-                            {doc.page_count > 0 && (
-                              <Tag color="blue" style={{ fontSize: 11 }}>
-                                {doc.page_count} 页
-                              </Tag>
-                            )}
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink-2)" }}>
+                              {ws.uploading ? "正在解析文档…" : "点击或拖拽上传需求文档"}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--ink-4)" }}>TXT / MD / PDF / DOCX，≤ 10MB，文本自动追加到下方</div>
                           </div>
                         </div>
-                        <Popconfirm
-                          title={`删除「${doc.filename}」？`}
-                          onConfirm={() => ws.runDeleteDocument(doc)}
-                        >
-                          <Button type="text" danger size="small">
-                            删除
-                          </Button>
-                        </Popconfirm>
-                      </div>
-                    ))
-                  )}
-                </Card>
-              )}
-                </Space>
-              </div>
+                      </Upload.Dragger>
+
+                      {ws.documents.map((doc) => (
+                        <div key={doc.document_id} className="doc-chip">
+                          <FileTextOutlined style={{ color: "var(--brand)" }} />
+                          <Text ellipsis style={{ flex: 1, minWidth: 0, fontSize: 12.5 }} title={doc.filename}>
+                            {doc.filename}
+                          </Text>
+                          <Text type="secondary" style={{ fontSize: 11 }}>
+                            {doc.file_format.toUpperCase()}
+                            {doc.page_count > 0 ? ` · ${doc.page_count} 页` : ""}
+                          </Text>
+                          <Popconfirm title={`删除「${doc.filename}」？`} okText="删除" cancelText="取消" onConfirm={() => ws.runDeleteDocument(doc)}>
+                            <Button type="text" size="small" icon={<DeleteOutlined />} aria-label={`删除 ${doc.filename}`} style={{ color: "var(--ink-4)" }} />
+                          </Popconfirm>
+                        </div>
+                      ))}
+
+                      <TextArea
+                        autoSize={{ minRows: 8, maxRows: 18 }}
+                        value={ws.requirementText}
+                        onChange={(e) => ws.setRequirementText(e.target.value)}
+                        placeholder={"或直接粘贴需求描述，例如：\n用户可在商品详情页加入购物车，结算时支持优惠券抵扣，库存不足时提示…"}
+                      />
+                      <Collapse
+                        ghost
+                        size="small"
+                        items={[
+                          {
+                            key: "context",
+                            label: (
+                              <Text type="secondary" style={{ fontSize: 13 }}>
+                                补充上下文（可选）
+                                {contextFilled > 0 && (
+                                  <Tag bordered={false} color="cyan" style={{ marginLeft: 8, fontSize: 11 }}>
+                                    已填 {contextFilled}
+                                  </Tag>
+                                )}
+                              </Text>
+                            ),
+                            children: (
+                              <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                                <div>
+                                  <FieldLabel>核心业务流程</FieldLabel>
+                                  <Input value={ws.businessFlow} onChange={(e) => ws.setBusinessFlow(e.target.value)} placeholder="登录 → 浏览商品 → 下单 → 支付" />
+                                </div>
+                                <div>
+                                  <FieldLabel>用户角色（逗号分隔）</FieldLabel>
+                                  <Input value={ws.rolesText} onChange={(e) => ws.setRolesText(e.target.value)} placeholder="买家, 商家, 运营" />
+                                </div>
+                                <div>
+                                  <FieldLabel>非功能要求（逗号分隔）</FieldLabel>
+                                  <Input value={ws.nonFunctionalText} onChange={(e) => ws.setNonFunctionalText(e.target.value)} placeholder="下单接口 P95 < 300ms, 支持 1000 并发" />
+                                </div>
+                              </Space>
+                            ),
+                          },
+                        ]}
+                      />
+                    </Space>
+                  </Card>
+
+                  <div style={{ marginTop: "auto", padding: "4px 6px 8px", fontSize: 12, lineHeight: 1.9, color: "var(--ink-3)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, color: "var(--ink-2)", marginBottom: 6 }}>
+                      <span className="icon-tile icon-tile-sm is-accent">
+                        <BulbOutlined />
+                      </span>
+                      小贴士
+                    </div>
+                    需求越具体，拆解越精准；补充上下文能提升覆盖度。生成后可在各模块底部追问修订，完成后「导出」Excel / Markdown。
+                  </div>
+                </div>
               )}
               <Button
                 block
@@ -449,80 +448,43 @@ export default function WorkspacePage() {
                 size="small"
                 icon={siderCollapsed ? <DoubleRightOutlined /> : <DoubleLeftOutlined />}
                 onClick={() => setSiderCollapsed(!siderCollapsed)}
-                style={{ borderTop: "1px solid #eef1f5", borderRadius: 0 }}
+                style={{ color: "var(--ink-3)", marginTop: 6 }}
               >
                 {siderCollapsed ? "" : "收起面板"}
               </Button>
             </div>
           </Sider>
 
-          {/* 右栏：流水线 + 结果 */}
+          {/* 右栏：任务 + 流水线 + 结果 */}
           <Content style={{ paddingLeft: 16, minWidth: 0 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%" }}>
+              {ws.task && (
+                <div style={{ flexShrink: 0 }}>
+                  <TaskPanel task={ws.task} onStop={ws.stopTask} />
+                </div>
+              )}
               <div style={{ flexShrink: 0 }}>
-                <TaskPanel task={ws.task} />
-              </div>
-              <Card
-                title={
-                  <Space>
-                    <ThunderboltOutlined style={{ color: "#0D9488" }} />
-                    生成流水线
-                  </Space>
-                }
-                size="small"
-                style={{ flexShrink: 0 }}
-                extra={
-                  <Button
-                    type="primary"
-                    icon={<RocketOutlined />}
-                    loading={ws.isBusy("gen:all")}
-                    onClick={ws.runGenerateAll}
-                    style={{
-                      background: "linear-gradient(135deg, #EA580C 0%, #F97316 100%)",
-                      boxShadow: "0 2px 8px rgba(234, 88, 12, 0.28)",
-                    }}
-                  >
-                    一键生成全部
-                  </Button>
-                }
-              >
-                <Steps
-                  size="small"
-                  onChange={(index) => setActiveTab(STEP_ORDER[index] ?? "analysis")}
-                  current={STEP_ORDER.findIndex((t) => stepStatus(t) === "process")}
-                  items={STEP_ORDER.map((target) => ({
-                    key: target,
-                    title: TARGET_LABELS[target],
-                    status: stepStatus(target) as "finish" | "process" | "wait",
-                  }))}
+                <PipelineBoard
+                  statusOf={ws.moduleStatus}
+                  countOf={countOf}
+                  selected={activeTab}
+                  onSelect={setActiveTab}
+                  running={ws.taskRunning}
+                  onRunAll={ws.runGenerateAll}
+                  onStop={ws.stopTask}
+                  riskCount={ws.analysis?.risks.length ?? 0}
+                  unknownCount={unknownCount}
+                  onShowUnknowns={() => setActiveTab("unknowns")}
                 />
-                <Row gutter={16} style={{ marginTop: 20 }}>
-                  <Col span={6}>
-                    <Statistic title="测试点" value={ws.testPoints.length} valueStyle={{ fontSize: 20 }} />
-                  </Col>
-                  <Col span={6}>
-                    <Statistic title="测试用例" value={ws.testCases.length} valueStyle={{ fontSize: 20 }} />
-                  </Col>
-                  <Col span={6}>
-                    <Statistic title="风险提示" value={ws.analysis?.risks.length ?? 0} valueStyle={{ fontSize: 20 }} />
-                  </Col>
-                  <Col span={6}>
-                    <Statistic title="待确认项" value={ws.analysis?.unknowns.length ?? 0} valueStyle={{ fontSize: 20 }} />
-                  </Col>
-                </Row>
-              </Card>
+              </div>
 
               <Card
                 size="small"
+                className="results-card"
                 style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
-                styles={{ body: { paddingTop: 4, height: "100%", overflowY: "auto" } }}
+                styles={{ body: { height: "100%", overflowY: "auto" } }}
               >
-                <Tabs
-                  activeKey={activeTab}
-                  onChange={setActiveTab}
-                  items={tabItems}
-                  destroyInactiveTabPane={false}
-                />
+                <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
               </Card>
             </div>
           </Content>
@@ -532,8 +494,8 @@ export default function WorkspacePage() {
       <Modal
         title={
           <Space>
-            <ExpandOutlined style={{ color: "#0D9488" }} />
-            {TARGET_LABELS[fullscreenTab ?? ""] ?? "全屏"} · 全屏查看
+            <ExpandOutlined style={{ color: "var(--brand)" }} />
+            {TARGET_LABELS[fullscreenTab ?? ""] ?? "全屏"}
           </Space>
         }
         open={Boolean(fullscreenTab)}
@@ -541,13 +503,15 @@ export default function WorkspacePage() {
         footer={null}
         width="calc(100vw - 64px)"
         style={{ top: 24, paddingBottom: 0 }}
-        styles={{ body: { maxHeight: "calc(100vh - 170px)", overflowY: "auto", paddingRight: 8 } }}
+        styles={{ body: { maxHeight: "calc(100vh - 140px)", overflowY: "auto", paddingRight: 8 } }}
+        destroyOnClose
       >
-        {fullscreenTab && fullscreenTabBody(fullscreenTab)}
+        {fullscreenTab && modulePane(fullscreenTab, true)}
       </Modal>
       <ExportModal
         open={exportOpen}
         exporting={ws.isBusy("export")}
+        available={STEP_ORDER.filter((t) => ws.hasContent(t))}
         onClose={() => setExportOpen(false)}
         onExport={async (format, targets) => {
           const ok = await ws.runExport(format, targets);

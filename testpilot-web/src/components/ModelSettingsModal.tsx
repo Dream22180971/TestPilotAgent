@@ -133,6 +133,8 @@ export default function ModelSettingsModal({
       setSettings(s);
       setApiKey("");
       messageApi.success("已保存并生效");
+    } catch (e) {
+      messageApi.error(e instanceof Error ? e.message : "保存失败");
     } finally {
       setSaving(false);
     }
@@ -142,7 +144,7 @@ export default function ModelSettingsModal({
     <Modal
       title={
         <Space>
-          <ApiOutlined style={{ color: "#0D9488" }} />
+          <ApiOutlined style={{ color: "var(--brand)" }} />
           模型配置
         </Space>
       }
@@ -163,7 +165,7 @@ export default function ModelSettingsModal({
             settings?.configured ? (
               <Space wrap size={4}>
                 <Text>AI 模式已启用</Text>
-                <Tag color="blue">{settings.model}</Tag>
+                <Tag color="cyan">{settings.model}</Tag>
                 {settings.api_key_masked && <Text type="secondary">Key：{settings.api_key_masked}</Text>}
               </Space>
             ) : (

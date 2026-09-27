@@ -111,14 +111,4 @@ export async function nodeToXmindBlob(node: NodeObj): Promise<Blob> {
   return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }
 
-/** 触发浏览器下载 */
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.URL.revokeObjectURL(url);
-}
+export { downloadBlob } from "@/services/api";

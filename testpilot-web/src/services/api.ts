@@ -1,36 +1,37 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
+/** Turn a failed response into a readable message (FastAPI puts it in `detail`). */
+async function errorMessage(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  try {
+    const detail = JSON.parse(text)?.detail;
+    if (typeof detail === "string") return detail;
+  } catch {
+    /* not JSON */
+  }
+  return text || `${fallback}: ${response.status}`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const isForm = init?.body instanceof FormData;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
       ...(init?.headers ?? {}),
     },
     cache: "no-store",
   });
 
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Request failed: ${response.status}`);
+    throw new Error(await errorMessage(response, "Request failed"));
   }
 
   return response.json() as Promise<T>;
 }
 
-async function downloadFile(path: string, filename: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || `Download failed: ${response.status}`);
-  }
-
-  const blob = await response.blob();
+/** 触发浏览器下载 */
+function downloadBlob(blob: Blob, filename: string): void {
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -41,4 +42,4 @@ async function downloadFile(path: string, filename: string): Promise<void> {
   window.URL.revokeObjectURL(url);
 }
 
-export { API_BASE_URL, downloadFile, request };
+export { API_BASE_URL, downloadBlob, errorMessage, request };

@@ -33,6 +33,7 @@ export default function MindmapView({ markdown }: { markdown: string | null }) {
   const mindRef = useRef<MindElixirInstance | null>(null);
   const lastMarkdownRef = useRef<string | null>(null);
   const [scale, setScale] = useState(100);
+  const [panning, setPanning] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || !markdown) return;
@@ -55,6 +56,8 @@ export default function MindmapView({ markdown }: { markdown: string | null }) {
       contextMenu: true,
       toolBar: false,
       keypress: true,
+      // 左键拖动空白处平移画布（手型光标），右键拖动框选节点
+      mouseSelectionButton: 2,
       overflowHidden: false,
       allowUndo: true,
       locale: "zh_CN",
@@ -153,7 +156,7 @@ export default function MindmapView({ markdown }: { markdown: string | null }) {
           <Tooltip title="回到中心">
             <Button size="small" icon={<AimOutlined />} onClick={() => mindRef.current?.toCenter()} />
           </Tooltip>
-          <Tooltip title="节点可拖拽重排、双击编辑；空白处拖拽平移、滚轮缩放">
+          <Tooltip title="空白处按住左键拖动平移 · 滚轮缩放 · 双击节点编辑 · 拖拽节点重排 · 右键拖动框选">
             <Button size="small" type="text" icon={<NodeIndexOutlined />} />
           </Tooltip>
         </Space>
@@ -168,6 +171,13 @@ export default function MindmapView({ markdown }: { markdown: string | null }) {
       </div>
       <div
         ref={containerRef}
+        className={`mindmap-canvas${panning ? " is-panning" : ""}`}
+        onMouseDown={(e) => {
+          const target = e.target as HTMLElement;
+          if (e.button === 0 && !target.closest("me-tpc, me-epd, #input-box")) setPanning(true);
+        }}
+        onMouseUp={() => setPanning(false)}
+        onMouseLeave={() => setPanning(false)}
         style={{
           height: 560,
           border: "1px solid #f0f0f0",

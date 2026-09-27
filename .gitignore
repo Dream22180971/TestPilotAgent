@@ -16,3 +16,4 @@ logs/
 testpilot-output/
 testpilot-api/testpilot.db*
 *.svg
+*.tsbuildinfo

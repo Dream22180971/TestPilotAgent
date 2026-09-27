@@ -65,13 +65,17 @@ export default function WorkspacePage() {
   const [activeTab, setActiveTab] = useState("analysis");
   const [exportOpen, setExportOpen] = useState(false);
 
-  // 从历史页打开项目（sessionStorage 传递，避免 SSR 查询参数问题）
+  // 从历史页打开项目（sessionStorage 传递，避免 SSR 查询参数问题）。
+  // 注意：项目列表异步加载，找到目标后才清除标记，否则列表未就绪时打开会丢失。
   useEffect(() => {
     const openId = sessionStorage.getItem("testpilot:openProjectId");
     if (!openId) return;
-    sessionStorage.removeItem("testpilot:openProjectId");
+    if (ws.projects.length === 0) return; // 列表未加载完，等待下次触发
     const target = ws.projects.find((p) => p.id === openId);
-    if (target) ws.openProject(target);
+    if (target) {
+      sessionStorage.removeItem("testpilot:openProjectId");
+      ws.openProject(target);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ws.projects]);
 

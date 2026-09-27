@@ -8,6 +8,7 @@ import {
   SettingOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 
 import ModelSettingsModal from "./ModelSettingsModal";
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
  */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const selectedKey = NAV_ITEMS.some((item) => item.key === pathname)
     ? pathname
@@ -75,6 +77,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           mode="inline"
           selectedKeys={[selectedKey]}
           items={NAV_ITEMS}
+          onClick={({ key }) => router.push(key)}
           style={{ borderInlineEnd: "none" }}
         />
         <div style={{ position: "absolute", bottom: 16, width: "100%", padding: "0 20px" }}>

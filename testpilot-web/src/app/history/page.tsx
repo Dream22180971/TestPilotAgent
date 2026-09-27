@@ -102,6 +102,13 @@ export default function HistoryPage() {
             size="small"
             pagination={{ pageSize: 15, hideOnSinglePage: true }}
             locale={{ emptyText: "还没有项目，去工作台创建第一个吧。" }}
+            onRow={(record) => ({
+              onClick: () => {
+                sessionStorage.setItem("testpilot:openProjectId", record.id);
+                window.location.href = "/workspace";
+              },
+              style: { cursor: "pointer" },
+            })}
           />
         )}
       </Card>

@@ -252,6 +252,10 @@ export function useWorkspace() {
 
   async function runGenerate(target: string): Promise<boolean> {
     if (target === "analysis") return runAnalyze();
+    if (!requirementText.trim()) {
+      message.warning("请先填写或上传需求内容，再生成。没有需求依据会让 AI 凭空编造测试资产。");
+      return false;
+    }
     setBusyKey(`gen:${target}`, true);
     setTask({ active: true, stage: "start", message: "任务开始", reasoning: {} });
     try {
@@ -285,6 +289,10 @@ export function useWorkspace() {
   }
 
   async function runGenerateAll(): Promise<boolean> {
+    if (!requirementText.trim()) {
+      message.warning("请先填写或上传需求内容，再生成。没有需求依据会让 AI 凭空编造测试资产。");
+      return false;
+    }
     setBusyKey("gen:all", true);
     setTask({ active: true, stage: "start", message: "任务开始", reasoning: {} });
     try {

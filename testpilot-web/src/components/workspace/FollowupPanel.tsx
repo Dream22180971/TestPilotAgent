@@ -75,7 +75,7 @@ export default function FollowupPanel({
           disabled={disabled || loading}
           placeholder={disabled ? `先生成${targetLabel}，再进行追问修订` : `对${targetLabel}提出修订意见，例如"补充弱网与并发场景"…`}
         />
-        <Button type="primary" ghost icon={<SendOutlined />} onClick={submit} loading={loading} disabled={disabled}>
+        <Button type="primary" icon={<SendOutlined />} onClick={submit} loading={loading} disabled={disabled}>
           追问
         </Button>
       </Space.Compact>

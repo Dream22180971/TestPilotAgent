@@ -243,7 +243,6 @@ export default function WorkspacePage() {
             </Button>
             <Button
               type="primary"
-              ghost
               icon={<ExportOutlined />}
               onClick={() => setExportOpen(true)}
             >

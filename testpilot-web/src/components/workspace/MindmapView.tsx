@@ -161,7 +161,7 @@ export default function MindmapView({ markdown }: { markdown: string | null }) {
           menu={{ items: exportItems, onClick: ({ key }) => handleExport(String(key)) }}
           placement="bottomRight"
         >
-          <Button size="small" type="primary" ghost icon={<DownloadOutlined />}>
+          <Button size="small" type="primary" icon={<DownloadOutlined />}>
             导出思维导图
           </Button>
         </Dropdown>

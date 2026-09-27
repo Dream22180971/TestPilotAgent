@@ -82,15 +82,17 @@ const EMPTY_STEPS = [
 
 export function EmptyHint({ text }: { text: string }) {
   return (
-    <div style={{ padding: "20px 4px", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div style={{ padding: "8px 4px", height: "100%", display: "flex" }}>
       <div
         style={{
-          width: "100%",
-          maxWidth: 720,
+          flex: 1,
           background: "linear-gradient(135deg, #CCFBF1 0%, #F0FDFA 100%)",
-          border: "1px dashed #b8d4ff",
+          border: "1px dashed #99F6E4",
           borderRadius: 12,
           padding: "26px 24px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 18 }}>

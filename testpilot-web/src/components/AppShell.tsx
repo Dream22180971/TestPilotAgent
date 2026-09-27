@@ -48,10 +48,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         style={{
           borderRight: "1px solid #f0f0f0",
           height: "100%",
-          overflow: "auto",
           zIndex: 20,
         }}
       >
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px", justifyContent: navCollapsed ? "center" : "flex-start" }}>
           <div
             style={{
@@ -87,7 +87,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           onClick={({ key }) => router.push(key)}
           style={{ borderInlineEnd: "none" }}
         />
-        <div style={{ position: "absolute", bottom: 16, width: "100%", padding: navCollapsed ? 0 : "0 20px", textAlign: navCollapsed ? "center" : "left" }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: navCollapsed ? 0 : 0.12,
+            transition: "opacity 0.2s ease",
+          }}
+        >
+          <ExperimentOutlined style={{ fontSize: 96, color: "#0D9488" }} />
+        </div>
+        <div style={{ padding: "12px 0 16px", textAlign: navCollapsed ? "center" : "left", flexShrink: 0 }}>
           <div style={{ marginBottom: 10 }}>
             {navCollapsed ? (
               <Tooltip title="模型配置" placement="right">
@@ -122,6 +134,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           )}
         </div>
+      </div>
       </Sider>
       <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <Layout>

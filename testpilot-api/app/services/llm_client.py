@@ -124,6 +124,55 @@ class LLMClient:
             result["model"] = mdl
         return result
 
+    def chat_stream(self, system_prompt: str, user_prompt: str, temperature: float = 0.3) -> "Any":
+        """Stream a chat completion, yielding dicts:
+
+        - {"reasoning": str} for reasoning/thinking deltas (if the model emits them)
+        - {"content": str}   for answer deltas
+        - {"done": str}      with the full answer text at the end
+
+        Tries with enable_thinking first (DashScope qwen3); on a 4xx falls
+        back to a plain request so non-thinking providers still work.
+        """
+        if not self.available:
+            raise RuntimeError("LLM not configured (no API key)")
+
+        # The OpenAI SDK only forwards provider-specific kwargs through
+        # extra_body on the top-level call, so build the request per attempt.
+        def _attempt(with_thinking: bool):
+            kwargs: dict[str, Any] = dict(
+                model=self._model,
+                temperature=temperature,
+                stream=True,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            if with_thinking:
+                kwargs["extra_body"] = {"enable_thinking": True}
+            return self.client.chat.completions.create(**kwargs)
+
+        full = ""
+        try:
+            stream = _attempt(with_thinking=True)
+        except Exception:
+            stream = _attempt(with_thinking=False)
+
+        for chunk in stream:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            reasoning = getattr(delta, "reasoning_content", None) or getattr(delta, "reasoning", None)
+            if reasoning:
+                yield {"reasoning": reasoning}
+            piece = delta.content or ""
+            if piece:
+                full += piece
+                yield {"content": piece}
+        yield {"done": full}
+
     def chat(self, system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
         """Send a chat completion request and return the content string."""
         if not self.available:

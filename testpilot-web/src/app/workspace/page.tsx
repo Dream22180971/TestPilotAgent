@@ -39,6 +39,7 @@ import {
   UnknownsView,
 } from "@/components/workspace/ModuleViews";
 import { TestCasesTable, TestPointsTable } from "@/components/workspace/AssetTables";
+import TaskPanel from "@/components/workspace/TaskPanel";
 import {
   PIPELINE_TARGETS,
   TARGET_LABELS,
@@ -383,6 +384,7 @@ export default function WorkspacePage() {
           {/* 右栏：流水线 + 结果 */}
           <Col xs={24} lg={16}>
             <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <TaskPanel task={ws.task} />
               <Card
                 title={
                   <Space>

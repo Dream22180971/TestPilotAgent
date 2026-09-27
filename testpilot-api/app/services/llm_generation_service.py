@@ -5,6 +5,7 @@ Falls back to rule-based generation_service when LLM is unavailable.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from app.schemas.output_schemas import (
@@ -134,3 +135,70 @@ def generate_with_llm(
         return result
     except Exception:
         return None
+
+
+def build_prompts(
+    project: dict,
+    requirement: dict,
+    target: str,
+    analysis: dict | None = None,
+    previous_output: dict | None = None,
+    doc_context: dict | None = None,
+) -> tuple[str, str] | None:
+    """Assemble (system, user) prompts for a target; None if target unknown."""
+    prompt_name = TARGET_PROMPT.get(target)
+    if not prompt_name:
+        return None
+
+    context = _build_context(project, requirement)
+    if analysis:
+        context += f"\n\n## 需求分析结果\n{analysis}"
+
+    system = render_prompt("system_prompt")
+    user = f"{render_prompt(prompt_name)}\n\n{context}"
+
+    if previous_output:
+        user += f"\n\n## 当前已有输出（供参考）\n{previous_output}"
+    return system, user
+
+
+def generate_with_llm_stream(
+    project: dict,
+    requirement: dict,
+    target: str,
+    analysis: dict | None = None,
+    previous_output: dict | None = None,
+    doc_context: dict | None = None,
+):
+    """Streaming variant of generate_with_llm.
+
+    Yields {"reasoning": str} deltas while the model thinks, then a final
+    {"result": dict} (validated output) or {"result": None} on failure.
+    """
+    prompts = build_prompts(project, requirement, target, analysis, previous_output, doc_context)
+    if prompts is None:
+        yield {"result": None}
+        return
+    system, user = prompts
+
+    full = ""
+    try:
+        for chunk in llm_client.chat_stream(system, user):
+            if "reasoning" in chunk:
+                yield chunk
+            elif "content" in chunk:
+                full += chunk["content"]
+            elif "done" in chunk:
+                full = chunk["done"]
+    except Exception:
+        yield {"result": None}
+        return
+
+    try:
+        parsed = json.loads(full)
+        schema_cls = TARGET_SCHEMA.get(target)
+        if schema_cls:
+            parsed = schema_cls(**parsed).model_dump()
+        yield {"result": parsed}
+    except Exception:
+        yield {"result": None}

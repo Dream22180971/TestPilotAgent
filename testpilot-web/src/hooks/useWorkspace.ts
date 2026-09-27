@@ -11,6 +11,7 @@ import {
   generateOutput,
   listDocuments,
   saveRequirement,
+  streamGenerate,
   uploadDocument,
 } from "@/services/generation";
 import { createProject, listProjects } from "@/services/project";
@@ -80,6 +81,18 @@ export function useWorkspace() {
   /** 统一 loading 字典：analyze | gen:<target> | follow:<target> | export */
   const [busy, setBusy] = useState<Record<string, boolean>>({});
 
+  /**
+   * 当前生成任务：实时阶段消息 + 模型思考过程（流式累积）。
+   * reasoning 按 target 分段保存，生成完成后保留供回看。
+   */
+  const [task, setTask] = useState<{
+    active: boolean;
+    stage: string;
+    message: string;
+    reasoning: Record<string, string>;
+    elapsedMs?: number;
+  } | null>(null);
+
   const setBusyKey = useCallback((key: string, value: boolean) => {
     setBusy((prev) => ({ ...prev, [key]: value }));
   }, []);
@@ -142,20 +155,40 @@ export function useWorkspace() {
     return { nextProjectId, nextRequirementId };
   }
 
-  /** 把某个 target 的生成结果写入对应 state */
+  /** 把某个 target 的生成结果写入对应 state。
+   *  兼容两种包装：全量响应 content.{target} = 模块内容；单模块事件 content 即模块内容。 */
   function applyGenerated(response: GenerateOutputResponse) {
     const content = response.content;
-    if (content.analysis) setAnalysis(content.analysis);
-    if (content.test_strategy) setTestStrategy(content.test_strategy);
-    if (content.test_plan) setTestPlan(content.test_plan);
-    if (content.test_points) setTestPoints(content.test_points.rows ?? []);
-    if (content.test_cases) setTestCases(content.test_cases.cases ?? []);
-    if (content.test_design) setTestDesign(content.test_design.markdown ?? null);
-    if (response.target === "test_points") setTestPoints(content.rows ?? []);
-    if (response.target === "test_cases") setTestCases(content.cases ?? []);
-    if (response.target === "test_strategy") setTestStrategy(content.test_strategy ?? null);
-    if (response.target === "test_plan") setTestPlan(content.test_plan ?? null);
-    if (response.target === "test_design") setTestDesign(content.test_design?.markdown ?? content.markdown ?? null);
+    const unwrap = <T,>(v: T | undefined, fallback: T): T => v ?? fallback;
+
+    switch (response.target) {
+      case "analysis": {
+        const a = unwrap(content.analysis, content as unknown as RequirementAnalysis);
+        if (a) setAnalysis(a);
+        break;
+      }
+      case "test_strategy":
+        setTestStrategy(unwrap(content.test_strategy, content as unknown as TestStrategy));
+        break;
+      case "test_plan":
+        setTestPlan(unwrap(content.test_plan, content as unknown as TestPlan));
+        break;
+      case "test_points": {
+        const pts = content.test_points ?? content;
+        setTestPoints(pts.rows ?? content.rows ?? []);
+        break;
+      }
+      case "test_cases": {
+        const cs = content.test_cases ?? content;
+        setTestCases(cs.cases ?? content.cases ?? []);
+        break;
+      }
+      case "test_design": {
+        const md = content.test_design ?? content;
+        setTestDesign(md.markdown ?? content.markdown ?? null);
+        break;
+      }
+    }
   }
 
   async function runAnalyze(): Promise<boolean> {
@@ -164,16 +197,33 @@ export function useWorkspace() {
       return false;
     }
     setBusyKey("analyze", true);
+    setTask({ active: true, stage: "start", message: "任务开始", reasoning: {} });
     try {
       const { nextProjectId, nextRequirementId } = await ensureProjectAndRequirement();
-      const analyzed = await analyzeRequirement(nextProjectId, nextRequirementId);
-      setAnalysis(analyzed);
+      await streamGenerate(nextProjectId, nextRequirementId, "analysis", {
+        onStatus: (st) => setTask((t) => (t ? { ...t, stage: st.stage, message: st.message ?? t.message } : t)),
+        onReasoning: (delta, target) =>
+          setTask((t) => {
+            if (!t) return t;
+            const merged = (t.reasoning[target] ?? "") + delta;
+            return { ...t, reasoning: { ...t.reasoning, [target]: merged } };
+          }),
+        onModuleDone: (target, content) => {
+          if (target === "analysis") setAnalysis(content as RequirementAnalysis);
+        },
+        onDone: () => setTask((t) => (t ? { ...t, active: false, stage: "done", message: "需求分析完成" } : t)),
+        onError: (msg) => {
+          message.error(msg);
+          setTask((t) => (t ? { ...t, active: false, stage: "error", message: msg } : t));
+        },
+      });
       await refreshDocuments(nextProjectId);
       await loadProjects();
       message.success("需求分析完成。");
       return true;
     } catch (error) {
       message.error(error instanceof Error ? error.message : "需求分析失败，请确认 API 服务已启动。");
+      setTask((t) => (t ? { ...t, active: false, stage: "error", message: "需求分析失败" } : t));
       return false;
     } finally {
       setBusyKey("analyze", false);
@@ -183,14 +233,31 @@ export function useWorkspace() {
   async function runGenerate(target: string): Promise<boolean> {
     if (target === "analysis") return runAnalyze();
     setBusyKey(`gen:${target}`, true);
+    setTask({ active: true, stage: "start", message: "任务开始", reasoning: {} });
     try {
       const { nextProjectId, nextRequirementId } = await ensureProjectAndRequirement();
-      const response = await generateOutput(nextProjectId, nextRequirementId, target);
-      applyGenerated(response);
+      await streamGenerate(nextProjectId, nextRequirementId, target, {
+        onStatus: (st) => setTask((t) => (t ? { ...t, stage: st.stage, message: st.message ?? t.message } : t)),
+        onReasoning: (delta, tg) =>
+          setTask((t) => {
+            if (!t) return t;
+            const merged = (t.reasoning[tg] ?? "") + delta;
+            return { ...t, reasoning: { ...t.reasoning, [tg]: merged } };
+          }),
+        onModuleDone: (tg, content) =>
+          applyGenerated({ project_id: nextProjectId, target: tg, requirement_id: nextRequirementId, status: "completed", content: content as never }),
+        onDone: (result) =>
+          setTask((t) => (t ? { ...t, active: false, stage: "done", message: `生成完成，用时 ${(result.elapsed_ms ?? 0) / 1000}s`, elapsedMs: result.elapsed_ms } : t)),
+        onError: (msg) => {
+          message.error(msg);
+          setTask((t) => (t ? { ...t, active: false, stage: "error", message: msg } : t));
+        },
+      });
       message.success(`${TARGET_LABELS[target] ?? target} 已生成。`);
       return true;
     } catch (error) {
       message.error(error instanceof Error ? error.message : `生成 ${TARGET_LABELS[target] ?? target} 失败。`);
+      setTask((t) => (t ? { ...t, active: false, stage: "error", message: "生成失败" } : t));
       return false;
     } finally {
       setBusyKey(`gen:${target}`, false);
@@ -199,16 +266,33 @@ export function useWorkspace() {
 
   async function runGenerateAll(): Promise<boolean> {
     setBusyKey("gen:all", true);
+    setTask({ active: true, stage: "start", message: "任务开始", reasoning: {} });
     try {
       const { nextProjectId, nextRequirementId } = await ensureProjectAndRequirement();
-      const response = await generateOutput(nextProjectId, nextRequirementId, "all");
-      applyGenerated(response);
+      await streamGenerate(nextProjectId, nextRequirementId, "all", {
+        onStatus: (st) => setTask((t) => (t ? { ...t, stage: st.stage, message: st.message ?? t.message } : t)),
+        onReasoning: (delta, target) =>
+          setTask((t) => {
+            if (!t) return t;
+            const merged = (t.reasoning[target] ?? "") + delta;
+            return { ...t, reasoning: { ...t.reasoning, [target]: merged } };
+          }),
+        onModuleDone: (target, content) =>
+          applyGenerated({ project_id: nextProjectId, target, requirement_id: nextRequirementId, status: "completed", content: content as never }),
+        onDone: (result) =>
+          setTask((t) => (t ? { ...t, active: false, stage: "done", message: `全部完成，用时 ${(result.elapsed_ms ?? 0) / 1000}s`, elapsedMs: result.elapsed_ms } : t)),
+        onError: (msg) => {
+          message.error(msg);
+          setTask((t) => (t ? { ...t, active: false, stage: "error", message: msg } : t));
+        },
+      });
       await refreshDocuments(nextProjectId);
       await loadProjects();
       message.success("全部模块已生成。");
       return true;
     } catch (error) {
       message.error(error instanceof Error ? error.message : "一键生成失败。");
+      setTask((t) => (t ? { ...t, active: false, stage: "error", message: "一键生成失败" } : t));
       return false;
     } finally {
       setBusyKey("gen:all", false);
@@ -376,6 +460,7 @@ export function useWorkspace() {
     // 状态
     isBusy,
     moduleStatus,
+    task,
   };
 }
 

@@ -187,3 +187,159 @@ def _collect_document_context(db: Session, project_id: str, requirement_id: str)
         "filenames": relevant_filenames,
         "combined_text": "\n\n---\n\n".join(relevant_texts),
     }
+
+
+# ---------------------------------------------------------------------------
+# Streaming generation (SSE) — exposes model reasoning and task progress
+# ---------------------------------------------------------------------------
+
+import json as _json
+import time as _time
+
+from fastapi.responses import StreamingResponse
+
+from app.database import SessionLocal
+from app.services.llm_client import llm_client
+from app.services.llm_generation_service import generate_with_llm_stream
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}" + chr(10) + "data: " + _json.dumps(data, ensure_ascii=False) + chr(10) * 2
+
+
+TARGET_LABELS_ZH = {
+    "analysis": "需求分析", "test_strategy": "测试策略", "test_plan": "测试计划",
+    "test_points": "测试点", "test_cases": "测试用例", "test_design": "测试设计",
+}
+
+
+def _run_target(project: dict, requirement: dict, target: str, analysis, previous_content, doc_context):
+    """Generator: yield SSE frames while generating one target.
+
+    `return` value (StopIteration.value) is the generated content, with the
+    rule-engine fallback applied when LLM is unavailable or fails.
+    """
+    label = TARGET_LABELS_ZH.get(target, target)
+
+    if llm_client.available:
+        yield _sse("status", {"target": target, "stage": "llm", "message": f"AI 正在生成{label}…"})
+        result = None
+        for chunk in generate_with_llm_stream(
+            project, requirement, target,
+            analysis if analysis is None or isinstance(analysis, str) else str(analysis),
+            previous_content, doc_context,
+        ):
+            if "reasoning" in chunk:
+                yield _sse("reasoning", {"target": target, "delta": chunk["reasoning"]})
+            elif "result" in chunk:
+                result = chunk["result"]
+        if result is not None:
+            yield _sse("stage_done", {"target": target, "via": "llm"})
+            return result
+        yield _sse("status", {"target": target, "stage": "fallback", "message": f"AI 生成失败，规则引擎兜底{label}…"})
+    else:
+        yield _sse("status", {"target": target, "stage": "rule", "message": f"规则引擎生成{label}…"})
+
+    if target == "analysis":
+        content = rule_build_analysis(project, requirement, doc_context)
+    elif target == "test_points":
+        content = generate_test_points(analysis)
+    elif target == "test_cases":
+        content = generate_test_cases(analysis)
+    elif target == "test_strategy":
+        content = generate_test_strategy(project, analysis)
+    elif target == "test_plan":
+        content = generate_test_plan(analysis)
+    elif target == "test_design":
+        content = generate_test_design(project, analysis)
+    else:
+        content = analysis
+    yield _sse("stage_done", {"target": target, "via": "rule"})
+    return content
+
+
+def _drive(runner):
+    """Iterate a _run_target generator: forward frames, capture return value."""
+    while True:
+        try:
+            yield next(runner)
+        except StopIteration as stop:
+            return stop.value
+
+
+@router.post("/{project_id}/generate/stream")
+def generate_output_stream(project_id: str, payload: GenerateRequest):
+    """SSE: status / reasoning / stage_done / module_done / done."""
+
+    def event_stream():
+        db = SessionLocal()
+        start = _time.monotonic()
+        try:
+            project = store.get_project(db, project_id)
+            if not project:
+                yield _sse("error", {"message": "Project not found"})
+                return
+            requirement = store.get_requirement(db, payload.requirement_id)
+            if not requirement or requirement["project_id"] != project_id:
+                yield _sse("error", {"message": "Requirement not found"})
+                return
+            if payload.target not in TARGETS and payload.target != "all":
+                yield _sse("error", {"message": f"Unsupported target: {payload.target}"})
+                return
+
+            doc_context = _collect_document_context(db, project_id, payload.requirement_id)
+            targets = [t for t in TARGETS if t != "analysis"] if payload.target == "all" else [payload.target]
+
+            yield _sse("status", {"stage": "start", "targets": targets, "message": "任务开始"})
+
+            analysis_output = store.get_output(db, project_id, "analysis")
+            analysis = analysis_output["content"] if analysis_output else None
+            results: dict = {}
+
+            if "analysis" in targets or payload.target == "analysis":
+                content = yield from _drive(_run_target(project, requirement, "analysis", None, None, doc_context))
+                store.save_output(db, project_id, "analysis", content)
+                results["analysis"] = content
+                yield _sse("module_done", {"target": "analysis", "content": content})
+
+            for t in targets:
+                if t == "analysis":
+                    continue
+                prev = store.get_output(db, project_id, t)
+                prev_content = prev["content"] if prev else None
+                analysis_ref = results.get("analysis") or analysis
+
+                if t == "test_cases":
+                    points_output = store.get_output(db, project_id, "test_points")
+                    pts = points_output["content"] if points_output and not payload.regenerate else None
+                    if pts is None:
+                        pts = yield from _drive(_run_target(project, requirement, "test_points", analysis_ref, None, doc_context))
+                        store.save_output(db, project_id, "test_points", pts)
+                        results["test_points"] = pts
+                        yield _sse("module_done", {"target": "test_points", "content": pts})
+                    analysis_for_target = pts
+                else:
+                    analysis_for_target = analysis_ref
+
+                content = yield from _drive(_run_target(project, requirement, t, analysis_for_target, prev_content, doc_context))
+                store.save_output(db, project_id, t, content)
+                results[t] = content
+                yield _sse("module_done", {"target": t, "content": content})
+
+            yield _sse("done", {
+                "project_id": project_id,
+                "target": payload.target,
+                "requirement_id": payload.requirement_id,
+                "status": "completed",
+                "content": results if payload.target == "all" else results.get(payload.target, {}),
+                "elapsed_ms": int((_time.monotonic() - start) * 1000),
+            })
+        except Exception as e:
+            yield _sse("error", {"message": str(e)})
+        finally:
+            db.close()
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+    })

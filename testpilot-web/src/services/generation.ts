@@ -157,3 +157,76 @@ export async function exportOutput(projectId: string, format: string, targets: s
     window.URL.revokeObjectURL(url);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Streaming generation (SSE over fetch) — exposes model reasoning & progress
+// ---------------------------------------------------------------------------
+
+export interface StreamHandlers {
+  onStatus?: (data: { target?: string; stage: string; message?: string; targets?: string[] }) => void;
+  onReasoning?: (delta: string, target: string) => void;
+  onModuleDone?: (target: string, content: unknown) => void;
+  onDone?: (result: GenerateOutputResponse & { elapsed_ms?: number }) => void;
+  onError?: (message: string) => void;
+}
+
+interface SseFrame {
+  event: string;
+  data: Record<string, unknown>;
+}
+
+/** Parse an SSE byte stream into event/data frames. */
+async function* readSse(resp: Response): AsyncGenerator<SseFrame> {
+  const reader = resp.body?.getReader();
+  if (!reader) throw new Error("浏览器不支持流式读取");
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let sep: number;
+    while ((sep = buffer.indexOf("\n\n")) >= 0) {
+      const raw = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      const frame: SseFrame = { event: "message", data: {} };
+      for (const line of raw.split("\n")) {
+        if (line.startsWith("event:")) frame.event = line.slice(6).trim();
+        else if (line.startsWith("data:")) {
+          try {
+            frame.data = JSON.parse(line.slice(5).trim());
+          } catch {
+            /* keep raw */
+          }
+        }
+      }
+      yield frame;
+    }
+  }
+}
+
+/** Stream a generation task (target: single target or "all"). */
+export async function streamGenerate(
+  projectId: string,
+  requirementId: string,
+  target: string,
+  handlers: StreamHandlers,
+): Promise<void> {
+  const API_BASE_URL_LOCAL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+  const resp = await fetch(`${API_BASE_URL_LOCAL}/api/projects/${projectId}/generate/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target, requirement_id: requirementId, regenerate: false }),
+  });
+  if (!resp.ok) throw new Error(`Request failed: ${resp.status}`);
+
+  for await (const frame of readSse(resp)) {
+    const d = frame.data as Record<string, string & string[]>;
+    if (frame.event === "status") handlers.onStatus?.(d as never);
+    else if (frame.event === "reasoning") handlers.onReasoning?.(d.delta as string, d.target as string);
+    else if (frame.event === "module_done") handlers.onModuleDone?.(d.target as string, d.content);
+    else if (frame.event === "done") handlers.onDone?.(d as never);
+    else if (frame.event === "error") handlers.onError?.(String(d.message));
+  }
+}

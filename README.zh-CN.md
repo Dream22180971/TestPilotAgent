@@ -53,12 +53,7 @@ uvicorn app.main:app --reload --port 8000
 
 后端默认使用 SQLite，本地首次启动不要求 PostgreSQL。
 
-可选 AI 配置：
-
-```bash
-cp .env.example .env
-# 然后在 .env 中设置 DASHSCOPE_API_KEY
-```
+可选 AI 配置：直接在工作台左下角「模型配置」弹窗里填 API Key、模型名与 Base URL（支持任意 OpenAI 兼容服务：DashScope / DeepSeek / Moonshot / OpenAI 等），保存即生效；也可以手动 `cp .env.example .env` 后设置 `DASHSCOPE_API_KEY`。
 
 ### 2. 启动前端
 

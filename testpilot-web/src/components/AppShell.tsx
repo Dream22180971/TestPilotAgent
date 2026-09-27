@@ -1,13 +1,17 @@
 "use client";
 
-import { Layout, Menu, Typography } from "antd";
+import { Button, Layout, Menu, Typography } from "antd";
 import {
   ExperimentOutlined,
   HistoryOutlined,
   GithubOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+import ModelSettingsModal from "./ModelSettingsModal";
+import { useState } from "react";
 
 const { Sider, Content } = Layout;
 const { Text } = Typography;
@@ -23,6 +27,7 @@ const NAV_ITEMS = [
  */
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const selectedKey = NAV_ITEMS.some((item) => item.key === pathname)
     ? pathname
     : "/workspace";
@@ -73,6 +78,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           style={{ borderInlineEnd: "none" }}
         />
         <div style={{ position: "absolute", bottom: 16, width: "100%", padding: "0 20px" }}>
+          <div style={{ marginBottom: 10 }}>
+            <Button
+              type="text"
+              size="small"
+              icon={<SettingOutlined />}
+              onClick={() => setSettingsOpen(true)}
+              style={{ padding: "0 0", color: "rgba(0,0,0,0.65)", fontSize: 13 }}
+            >
+              模型配置
+            </Button>
+          </div>
           <Link
             href="https://github.com/Dream22180971/TestPilotAgent"
             target="_blank"
@@ -83,6 +99,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </Sider>
+      <ModelSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <Layout>
         <Content style={{ padding: 24 }}>
           <div style={{ maxWidth: 1280, margin: "0 auto" }}>{children}</div>

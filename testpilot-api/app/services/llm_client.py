@@ -1,10 +1,13 @@
 """LLM client wrapper for OpenAI-compatible APIs (Aliyun DashScope / OpenAI).
 
-Configurable via environment variables:
-  - DASHSCOPE_API_KEY: Aliyun DashScope API key (takes priority)
-  - LLM_API_KEY: Fallback API key (empty = fallback to rule engine)
-  - LLM_BASE_URL: Base URL (default: DashScope compatible-mode)
-  - LLM_MODEL: Model name (default: qwen-plus)
+Configuration sources (highest priority first):
+  1. Runtime updates via `llm_client.update_config()` (saved by /api/settings)
+  2. testpilot-api/.env loaded at startup (python-dotenv)
+  3. Environment variables:
+     - DASHSCOPE_API_KEY: Aliyun DashScope API key (takes priority)
+     - LLM_API_KEY: Fallback API key (empty = fallback to rule engine)
+     - LLM_BASE_URL: Base URL (default: DashScope compatible-mode)
+     - LLM_MODEL: Model name
 """
 
 import json
@@ -16,38 +19,70 @@ from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
-# Aliyun DashScope takes priority; fall back to generic LLM_API_KEY
-_DASHSCOPE_KEY = os.environ.get("DASHSCOPE_API_KEY", "")
-_API_KEY = _DASHSCOPE_KEY or os.environ.get("LLM_API_KEY", "")
-_BASE_URL = os.environ.get("LLM_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
-_MODEL = os.environ.get("LLM_MODEL", "qwen3-vl-flash-2026-01-22")
+DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+DEFAULT_MODEL = "qwen3-vl-flash-2026-01-22"
 
 
 class LLMClient:
-    """Thin wrapper around OpenAI-compatible client (DashScope / OpenAI)."""
+    """Thin wrapper around OpenAI-compatible client (DashScope / OpenAI).
+
+    Keeps a mutable runtime config so the settings API can hot-swap
+    the API key / model without a server restart.
+    """
 
     def __init__(self) -> None:
+        dashscope_key = os.environ.get("DASHSCOPE_API_KEY", "")
+        self._api_key = dashscope_key or os.environ.get("LLM_API_KEY", "")
+        self._base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
+        self._model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
         self._client: OpenAI | None = None
-        self._available: bool = bool(_API_KEY)
+
+    def update_config(
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
+    ) -> None:
+        """Hot-swap runtime config; pass None to keep the current value."""
+        if api_key:
+            self._api_key = api_key.strip()
+        if model:
+            self._model = model.strip()
+        if base_url:
+            self._base_url = base_url.strip()
+        self._client = None
 
     @property
     def client(self) -> OpenAI:
         if self._client is None:
-            self._client = OpenAI(api_key=_API_KEY, base_url=_BASE_URL)
+            self._client = OpenAI(api_key=self._api_key, base_url=self._base_url)
         return self._client
 
     @property
     def available(self) -> bool:
-        return self._available
+        return bool(self._api_key)
+
+    def status(self) -> dict[str, Any]:
+        """Current config for the settings UI (API key masked)."""
+        masked = ""
+        if self._api_key:
+            key = self._api_key
+            masked = f"{key[:4]}***{key[-4:]}" if len(key) > 10 else "***"
+        return {
+            "configured": self.available,
+            "api_key_masked": masked,
+            "model": self._model,
+            "base_url": self._base_url,
+        }
 
     def chat(self, system_prompt: str, user_prompt: str, temperature: float = 0.3) -> str:
         """Send a chat completion request and return the content string."""
-        if not self._available:
-            raise RuntimeError("LLM not available (LLM_API_KEY not set)")
+        if not self.available:
+            raise RuntimeError("LLM not configured (no API key)")
 
         try:
             resp = self.client.chat.completions.create(
-                model=_MODEL,
+                model=self._model,
                 temperature=temperature,
                 response_format={"type": "json_object"},
                 messages=[

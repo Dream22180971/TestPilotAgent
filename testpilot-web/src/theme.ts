@@ -10,7 +10,7 @@ export const workbenchTheme: ThemeConfig = {
     colorInfo: "#0D9488",
     borderRadius: 8,
     fontSize: 14,
-    colorBgLayout: "#F0FDFA",
+    colorBgLayout: "#E3F0EC",
     colorTextHeading: "#0F172A",
     colorText: "#334155",
     colorLink: "#0D9488",
@@ -21,8 +21,8 @@ export const workbenchTheme: ThemeConfig = {
       headerBg: "#ffffff",
       headerHeight: 56,
       headerPadding: "0 24px",
-      siderBg: "#fbfdff",
-      bodyBg: "#F0FDFA",
+      siderBg: "#F0FAF7",
+      bodyBg: "#E3F0EC",
     },
     Card: {
       headerFontSize: 15,
@@ -36,7 +36,7 @@ export const workbenchTheme: ThemeConfig = {
       headerBorderRadius: 8,
     },
     Menu: {
-      itemSelectedBg: "#e6f0ff",
+      itemSelectedBg: "#CCFBF1",
       itemSelectedColor: "#0D9488",
       itemBorderRadius: 10,
       itemMarginInline: 10,

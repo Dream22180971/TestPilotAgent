@@ -285,7 +285,7 @@ export default function WorkspacePage() {
       const response = await generateOutput(nextProjectId, nextRequirementId, "all");
 
       const content = response.content;
-      if (content.analysis) setAnalysisResult(content.analysis as RequirementAnalysis);
+      if (content.analysis) setAnalysisResult(content.analysis);
       if (content.test_points) {
         const tp = content.test_points as { rows?: TestPointRow[] };
         setTestPoints(tp.rows ?? []);

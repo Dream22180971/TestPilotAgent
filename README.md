@@ -2,30 +2,30 @@
 
 # TestPilotAgent
 
-**Turn requirement documents into structured test strategies, test points, cases and scripts with AI.**
+**把需求文档转成结构化测试策略、测试点、测试用例和测试脚本。**
 
-[English](./README.md) | [简体中文](./README.zh-CN.md)
+[简体中文](./README.md) | [English](./README.en.md)
 
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
-[![AI Quality](https://img.shields.io/badge/AI+QUALITY-111827?style=for-the-badge&logo=checkmarx&logoColor=22c55e)](#roadmap)
+[![AI Quality](https://img.shields.io/badge/AI+QUALITY-111827?style=for-the-badge&logo=checkmarx&logoColor=22c55e)](#路线图)
 [![License](https://img.shields.io/badge/LICENSE-MIT-10B981?style=for-the-badge)](./LICENSE)
 
 </div>
 
 ---
 
-## 🎯 What it is
+## 🎯 它是什么
 
-TestPilotAgent is an AI-assisted testing workbench. Upload or paste a requirement and turn it into reusable testing assets instead of starting every review from a blank page.
+TestPilotAgent 是一个面向测试工程师的 AI 工作台。上传需求文档或直接粘贴需求后，把内容拆解成可复用的测试资产，而不是每次都从空白文档开始写。
 
-> **Requirement → test strategy → test points → test cases → test scripts → human review.**
+> **需求 → 测试策略 → 测试点 → 测试用例 → 测试脚本 → 人工评审。**
 
-The goal is not to remove human judgment. It is to reduce repetitive test-design work and give reviewers a structured first draft.
+目标不是替代测试人员的判断，而是减少重复的测试设计工作，让评审从一份结构化初稿开始。
 
 ---
 
-## 🎬 Demo
+## 🎬 演示
 
 <div align="center">
 
@@ -33,15 +33,17 @@ The goal is not to remove human judgment. It is to reduce repetitive test-design
 <img width="2560" height="1346" alt="image" src="https://github.com/user-attachments/assets/18dc8c1e-dacc-4e51-9e03-39ca69afb7dc" />
 <img width="2560" height="1346" alt="image" src="https://github.com/user-attachments/assets/fece7c68-c1cb-4e8e-872c-6e7aa98ce823" />
 
+
+
 </div>
 
-> Next visual asset: a short GIF showing upload → generation → follow-up refinement.
+> 下一步最值得补的是一段 GIF：展示上传需求 → 生成 → 追问补充的完整闭环。
 
 ---
 
-## ⚡ Quick Start
+## ⚡ 5 分钟快速开始
 
-### 1. Backend
+### 1. 启动后端
 
 ```bash
 git clone https://github.com/Dream22180971/TestPilotAgent.git
@@ -51,18 +53,18 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-The backend uses SQLite by default, so PostgreSQL is not required for a local first run.
+后端默认使用 SQLite，本地首次启动不要求 PostgreSQL。
 
-Optional AI configuration:
+可选 AI 配置：
 
 ```bash
 cp .env.example .env
-# then set DASHSCOPE_API_KEY in .env
+# 然后在 .env 中设置 DASHSCOPE_API_KEY
 ```
 
-### 2. Frontend
+### 2. 启动前端
 
-Open another terminal:
+另开一个终端：
 
 ```bash
 cd TestPilotAgent/testpilot-web
@@ -71,78 +73,78 @@ npm install
 npm run dev
 ```
 
-Open:
+访问：
 
-- Frontend: `http://127.0.0.1:3000`
-- API docs: `http://127.0.0.1:8000/docs`
-- Health check: `http://127.0.0.1:8000/health`
+- 前端：`http://127.0.0.1:3000`
+- API 文档：`http://127.0.0.1:8000/docs`
+- 健康检查：`http://127.0.0.1:8000/health`
 
 ---
 
-## 🔄 Core Workflow
+## 🔄 核心工作流
 
 ```mermaid
 flowchart LR
-    A[Requirement] --> B[Document Parser]
-    B --> C[AI Analysis]
-    C --> D[Test Strategy]
-    C --> E[Test Points]
-    C --> F[Test Cases]
-    C --> G[Test Scripts]
-    D --> H[Human Review]
+    A[需求] --> B[文档解析]
+    B --> C[AI 分析]
+    C --> D[测试策略]
+    C --> E[测试点]
+    C --> F[测试用例]
+    C --> G[测试脚本]
+    D --> H[人工评审]
     E --> H
     F --> H
     G --> H
-    H --> I[Follow-up / Regeneration]
+    H --> I[追问 / 局部重生成]
 ```
 
 ---
 
-## ✅ Current Capabilities
+## ✅ 当前能力
 
-| Capability | Status | Notes |
+| 能力 | 状态 | 说明 |
 |---|---:|---|
-| Requirement text input | ✅ | paste directly into the workspace |
-| TXT / PDF / DOCX parsing | ✅ | document content is extracted for analysis |
-| AI-assisted generation | ✅ | DashScope-compatible model integration |
-| Rule fallback | ✅ | basic generation path without an API key |
-| Project persistence | ✅ | SQLite by default, PostgreSQL supported through `DATABASE_URL` |
-| Follow-up refinement | 🚧 | still evolving |
-| Structured schema validation | 🚧 | planned with Pydantic |
-| Excel / XMind export | 🚧 | planned |
+| 直接输入需求 | ✅ | 在工作台粘贴需求 |
+| TXT / PDF / DOCX 解析 | ✅ | 自动提取文档内容 |
+| AI 辅助生成 | ✅ | 对接 DashScope 兼容模型 |
+| 规则兜底 | ✅ | 没有 API Key 时可走基础生成路径 |
+| 项目持久化 | ✅ | 默认 SQLite，也支持 `DATABASE_URL` 切 PostgreSQL |
+| 追问修改 | 🚧 | 持续完善 |
+| 结构化 Schema 校验 | 🚧 | 计划使用 Pydantic |
+| Excel / XMind 导出 | 🚧 | 规划中 |
 
 ---
 
-## 🧪 Example
+## 🧪 使用示例
 
-Given a requirement:
+假设需求是：
 
 ```text
-Users can log in with username and password.
-After five consecutive password failures, the account must be locked.
+用户可以通过用户名和密码登录。
+连续 5 次密码错误后，账号必须锁定。
 ```
 
-A useful testing breakdown includes:
+测试拆解至少应该覆盖：
 
-- normal login
-- wrong password
-- fifth failure
-- locked account behavior
-- retry behavior
-- unlock path
-- empty credentials
-- nonexistent username
-- boundary conditions
+- 正常登录
+- 密码错误
+- 第 5 次失败
+- 锁定后的行为
+- 重试行为
+- 解锁路径
+- 空用户名 / 空密码
+- 用户不存在
+- 边界条件
 
-Then continue with a follow-up prompt such as:
+随后可以继续追问：
 
 ```text
-Add empty-password, nonexistent-user and login-after-lock scenarios.
+补充密码为空、用户名不存在、锁定后再次登录的场景。
 ```
 
 ---
 
-## 🧩 Architecture
+## 🧩 技术架构
 
 ```text
 ┌──────────────────────────────────┐
@@ -157,93 +159,93 @@ Add empty-password, nonexistent-user and login-after-lock scenarios.
 │ Rule fallback                   │
 ├──────────────────────────────────┤
 │ Storage                          │
-│ SQLite by default               │
-│ PostgreSQL via DATABASE_URL     │
+│ 默认 SQLite                     │
+│ DATABASE_URL 可切 PostgreSQL    │
 └──────────────────────────────────┘
 ```
 
-Design principles:
+设计原则：
 
-- structured output before polished prose
-- human review before acceptance
-- reusable test assets instead of one-off chat
-- gradual evolution toward AI quality engineering
+- 优先结构化输出，而不是漂亮但不可复用的长文本
+- 所有 AI 结果都要经过人工评审
+- 产出测试资产，而不是一次性聊天内容
+- 从测试设计逐步演进到 AI 质量工程
 
 ---
 
-## ⚙️ Environment
+## ⚙️ 环境变量
 
-Backend `.env` example:
+后端 `.env` 示例：
 
 ```bash
 DASHSCOPE_API_KEY=""
 DATABASE_URL="sqlite:///./testpilot.db"
 ```
 
-Optional model and endpoint overrides are documented in `testpilot-api/.env.example`.
+模型和 Endpoint 的可选覆盖项见 `testpilot-api/.env.example`。
 
 ---
 
-## ⚠️ Current Limitations
+## ⚠️ 当前限制
 
-- Generated content still requires human review.
-- Complex image-heavy documents need stronger multimodal parsing.
-- Output quality depends on the configured model and prompt.
-- This is not yet a production-grade enterprise test management platform.
+- AI 生成结果仍然需要人工评审。
+- 图文混排和复杂扫描文档仍需要更强的多模态解析。
+- 输出质量会受到模型与提示词配置影响。
+- 当前还不是生产级企业测试管理平台。
 
-Making limitations explicit is intentional: this repository is a working engineering project, not a finished SaaS claim.
+明确写限制是有意为之：这个仓库展示的是一个真实演进中的工程项目，而不是包装成“已经完成的 SaaS”。
 
 ---
 
-## 🗺 Roadmap
+## 🗺 路线图
 
-### L1 · Reliable Core Workflow
+### L1 · 核心闭环可靠化
 
-- [x] Document upload and parsing
-- [x] LLM integration
-- [x] Persistent database
-- [ ] Pydantic structured output validation
-- [ ] Follow-up and partial regeneration
-- [ ] Excel / XMind export
-- [ ] Multi-model support
-- [ ] Regular dogfooding
+- [x] 文档上传与解析
+- [x] 大模型集成
+- [x] 数据持久化
+- [ ] Pydantic 结构化输出校验
+- [ ] 追问与局部重生成
+- [ ] Excel / XMind 导出
+- [ ] 多模型支持
+- [ ] 持续 Dogfooding
 
-### L2 · Knowledge
+### L2 · 知识沉淀
 
-- [ ] Historical-case RAG
-- [ ] Project-specific memory
-- [ ] Reusable test asset library
+- [ ] 历史用例 RAG
+- [ ] 项目级记忆
+- [ ] 可复用测试资产库
 
 ### L3 · Agentic QA
 
-- [ ] Review Agent
-- [ ] Execution Agent
-- [ ] Archive Agent
-- [ ] Multi-agent orchestration
+- [ ] 评审 Agent
+- [ ] 执行 Agent
+- [ ] 归档 Agent
+- [ ] 多 Agent 编排
 
 ### L4 · AI Quality Workbench
 
-- [ ] RAG evaluation
-- [ ] Prompt regression
-- [ ] Agent trajectory testing
-- [ ] MCP contract testing
-- [ ] Hallucination checks
-- [ ] Latency / cost comparison
-- [ ] Golden datasets
-- [ ] CI quality gates
+- [ ] RAG 评测
+- [ ] Prompt 回归
+- [ ] Agent 轨迹测试
+- [ ] MCP 契约测试
+- [ ] 幻觉检查
+- [ ] 延迟 / 成本对比
+- [ ] Golden Dataset
+- [ ] CI 质量门禁
 
 ---
 
-## 🤝 Contributing
+## 🤝 参与贡献
 
-Useful contributions include:
+尤其欢迎：
 
-- document parsers
-- structured schemas
-- evaluation datasets
-- export formats
-- model adapters
-- real QA workflow examples
+- 文档解析器
+- 结构化 Schema
+- 评测数据集
+- 导出格式
+- 模型适配
+- 真实 QA 工作流案例
 
 ---
 
@@ -253,6 +255,6 @@ Useful contributions include:
 
 <div align="center">
 
-**AI should reduce repetitive test-design work, not remove human judgment.**
+**AI 应该减少重复测试设计工作，而不是替代测试人员的判断。**
 
 </div>
